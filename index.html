@@ -1,290 +1,470 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gleam & Co. | Morse Code Jewelry</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React + ReactDOM -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Babel -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Firebase (compat version for browser use) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gleam & Co. | Morse Code Jewelry (Modular Firebase)</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    .hidden-until-ready { opacity: 0; transition: opacity .25s ease-in; }
+    .visible-ready { opacity: 1; }
+  </style>
 </head>
 <body class="bg-gray-50">
 
-<div id="root"></div>
+  <div id="root" class="hidden-until-ready"></div>
 
-<script type="text/babel">
+  <!-- Use modern modular Firebase (as you provided) -->
+  <script type="module">
+    // ---------- Firebase modular SDK imports ----------
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-// -----------------------------
-// Firebase Initialization
-// -----------------------------
-const firebaseConfig = {
-  apiKey: "AIzaSyBPFHirKiLqk8gmt1QGEStM5HfTJvIZw8",
-  authDomain: "morse-code-jewelry.firebaseapp.com",
-  projectId: "morse-code-jewelry",
-  storageBucket: "morse-code-jewelry.appspot.com",
-  messagingSenderId: "1034331508828",
-  appId: "1:1034331508828:web:08acf02e2363000e99d6d9",
-  measurementId: "G-C4WH6XN1IZ"
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-// -----------------------------
-// React App
-// -----------------------------
-const { useState, useEffect, useMemo } = React;
-
-const App = () => {
-  const [page, setPage] = useState('home');
-  const [cart, setCart] = useState([]);
-  const [message, setMessage] = useState('');
-  const [userId, setUserId] = useState(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
-
-  // Firebase anonymous sign-in
-  useEffect(() => {
-    auth.signInAnonymously()
-      .then((cred) => {
-        setUserId(cred.user.uid);
-        setIsAuthReady(true);
-        console.log("Anonymous user signed in:", cred.user.uid);
-      })
-      .catch(err => {
-        console.error("Firebase auth error:", err);
-        setIsAuthReady(true);
-      });
-  }, []);
-
-  // Product data
-  const initialProducts = useMemo(() => ([
-    { id: 1, name: 'Gold Morse Code Necklace', price: 159.99, description: 'Elegant gold bar necklace, subtly encoding a name or message in dots and dashes.', image: 'https://placehold.co/400x300?text=Gold+Necklace' },
-    { id: 2, name: 'Gold Morse Code Bracelet', price: 99.50, description: 'Delicate 14k gold chain bracelet, featuring a personalized Morse Code message.', image: 'https://placehold.co/400x300?text=Gold+Bracelet' },
-    { id: 3, name: 'Silver Morse Code Necklace', price: 139.00, description: 'Polished silver necklace, transforming words into a sleek, customized pattern.', image: 'https://placehold.co/400x300?text=Silver+Necklace' },
-    { id: 4, name: 'Silver Cord Bracelet Set', price: 89.00, description: 'Multiple cord bracelets with silver elements, customizable for personalized names.', image: 'https://placehold.co/400x300?text=Silver+Bracelet' },
-  ]), []);
-
-  // Cart calculations
-  const cartItems = useMemo(() => {
-    return cart.map(item => {
-      const product = initialProducts.find(p => p.id === item.productId);
-      if (!product) return null;
-      return { ...product, quantity: item.quantity, subtotal: product.price * item.quantity };
-    }).filter(item => item !== null);
-  }, [cart, initialProducts]);
-
-  const cartTotal = useMemo(() => {
-    return cartItems.reduce((total, item) => total + item.subtotal, 0);
-  }, [cartItems]);
-
-  // Cart handlers
-  const addToCart = (product) => {
-    setCart(prev => {
-      const existing = prev.find(i => i.productId === product.id);
-      if (existing) {
-        return prev.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i);
-      }
-      return [...prev, { productId: product.id, quantity: 1 }];
-    });
-    setMessage(`${product.name} added to cart!`);
-  };
-
-  const updateQuantity = (productId, quantity) => {
-    setCart(prev => {
-      if (quantity <= 0) return prev.filter(i => i.productId !== productId);
-      return prev.map(i => i.productId === productId ? { ...i, quantity } : i);
-    });
-  };
-
-  const clearCart = () => {
-    setCart([]);
-    setMessage('Cart cleared.');
-  };
-
-  // Firestore submit functions
-  const submitOrder = async (orderData) => {
-    if (!db || !userId) {
-      setMessage('Database not ready.');
-      return;
-    }
-    try {
-      const ordersRef = db.collection('orders');
-      await ordersRef.add({ ...orderData, userId, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-      setMessage('Order submitted!');
-      clearCart();
-      setPage('home');
-    } catch (e) {
-      console.error("Error submitting order:", e);
-      setMessage('Order submission failed.');
-    }
-  };
-
-  const submitContact = async (formData) => {
-    if (!db || !userId) {
-      setMessage('Database not ready.');
-      return false;
-    }
-    try {
-      const contactRef = db.collection('contact_messages');
-      await contactRef.add({ ...formData, userId, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-      setMessage('Message sent!');
-      return true;
-    } catch (e) {
-      console.error("Error sending message:", e);
-      setMessage('Message sending failed.');
-      return false;
-    }
-  };
-
-  // -----------------------------
-  // UI Components
-  // -----------------------------
-  const Navbar = () => (
-    <nav className="bg-white shadow-lg sticky top-0 z-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
-        <button onClick={() => setPage('home')} className="text-2xl font-bold text-pink-600 hover:text-pink-800">Gleam & Co.</button>
-        <div className="flex space-x-4">
-          <button onClick={() => setPage('home')} className={page==='home'?'font-bold text-pink-700':'text-gray-700'}>Shop</button>
-          <button onClick={() => setPage('gallery')} className={page==='gallery'?'font-bold text-pink-700':'text-gray-700'}>Gallery</button>
-          <button onClick={() => setPage('contact')} className={page==='contact'?'font-bold text-pink-700':'text-gray-700'}>Contact</button>
-          <button onClick={() => setPage('cart')} className="relative">
-            Cart {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full px-2 text-xs">{cart.reduce((t,i)=>t+i.quantity,0)}</span>}
-          </button>
-        </div>
-      </div>
-    </nav>
-  );
-
-  const ProductCard = ({ product }) => (
-    <div className="bg-white rounded-xl shadow-lg p-4">
-      <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
-      <h3 className="mt-2 font-semibold">{product.name}</h3>
-      <p className="text-gray-500">{product.description}</p>
-      <div className="flex justify-between mt-2 items-center">
-        <span className="font-bold">${product.price.toFixed(2)}</span>
-        <button className="bg-pink-600 text-white px-4 py-2 rounded" onClick={() => addToCart(product)}>Add</button>
-      </div>
-    </div>
-  );
-
-  const Home = () => (
-    <div className="py-12 px-4 max-w-7xl mx-auto">
-      <h1 className="text-4xl font-bold text-center mb-4">Personalized Morse Code Jewelry</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {initialProducts.map(p => <ProductCard key={p.id} product={p} />)}
-      </div>
-    </div>
-  );
-
-  const Cart = () => (
-    <div className="max-w-3xl mx-auto py-12 px-4">
-      <h1 className="text-3xl font-bold mb-6">Shopping Cart</h1>
-      {cartItems.length === 0 ? (
-        <p>Cart is empty.</p>
-      ) : (
-        cartItems.map(item => (
-          <div key={item.id} className="flex justify-between items-center mb-4 bg-white p-4 rounded shadow">
-            <span>{item.name}</span>
-            <input type="number" value={item.quantity} min="1" onChange={(e)=>updateQuantity(item.id, parseInt(e.target.value)||1)} className="w-16 p-1 border"/>
-            <span>${item.subtotal.toFixed(2)}</span>
-          </div>
-        ))
-      )}
-      {cartItems.length > 0 && (
-        <div className="mt-4 flex justify-between">
-          <button className="px-4 py-2 border rounded" onClick={clearCart}>Clear Cart</button>
-          <button className="px-4 py-2 bg-pink-600 text-white rounded" onClick={()=>setPage('checkout')}>Checkout</button>
-        </div>
-      )}
-    </div>
-  );
-
-  const Checkout = () => {
-    const [name, setName] = useState('');
-    const [address, setAddress] = useState('');
-    const [card, setCard] = useState('');
-    const handleSubmit = async(e) => {
-      e.preventDefault();
-      const orderData = { customerName: name, address, items: cartItems.map(i=>({name:i.name, qty:i.quantity})), total: cartTotal };
-      await submitOrder(orderData);
+    // ---------- Your Firebase config (from your message) ----------
+    const firebaseConfig = {
+      apiKey: "AIzaSyDHRFiiklg8k8gmt1QGEstSM5hfTJvIZW8",
+      authDomain: "morse-code-jewelry.firebaseapp.com",
+      projectId: "morse-code-jewelry",
+      storageBucket: "morse-code-jewelry.firebasestorage.app",
+      messagingSenderId: "1034331508828",
+      appId: "1:1034331508828:web:08acf02e2363000e99d699",
+      measurementId: "G-C4WH6X1N1Z"
     };
-    return (
-      <div className="max-w-2xl mx-auto py-12 px-4">
-        <h1 className="text-3xl font-bold mb-6">Checkout</h1>
-        <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded shadow">
-          <input type="text" placeholder="Name" value={name} onChange={e=>setName(e.target.value)} className="w-full p-2 border rounded" required/>
-          <textarea placeholder="Address" value={address} onChange={e=>setAddress(e.target.value)} className="w-full p-2 border rounded" required/>
-          <input type="text" placeholder="Card number" value={card} onChange={e=>setCard(e.target.value)} className="w-full p-2 border rounded" required/>
-          <button type="submit" className="bg-pink-600 text-white px-4 py-2 rounded">Pay ${cartTotal.toFixed(2)}</button>
-        </form>
-      </div>
-    );
-  };
 
-  const ContactUs = () => {
-    const [name, setName] = useState(''); const [email,setEmail] = useState(''); const [msg,setMsg]=useState('');
-    const handleSubmit = async(e) => { e.preventDefault(); await submitContact({name,email,message:msg}); setName(''); setEmail(''); setMsg('');};
-    return (
-      <div className="max-w-xl mx-auto py-12 px-4">
-        <h1 className="text-3xl font-bold mb-6">Contact Us</h1>
-        <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded shadow">
-          <input type="text" placeholder="Name" value={name} onChange={e=>setName(e.target.value)} className="w-full p-2 border rounded" required/>
-          <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-2 border rounded" required/>
-          <textarea placeholder="Message" value={msg} onChange={e=>setMsg(e.target.value)} className="w-full p-2 border rounded" required/>
-          <button type="submit" className="bg-pink-600 text-white px-4 py-2 rounded">Send</button>
-        </form>
-      </div>
-    );
-  };
+    // Initialize Firebase + Analytics
+    const app = initializeApp(firebaseConfig);
+    // Analytics will only work on secure origins (https or localhost)
+    try { getAnalytics(app); } catch(e) { console.info("Analytics init skipped or unavailable in this context:", e?.message || e); }
 
-  const Gallery = () => (
-    <div className="py-12 px-4 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-center">Gallery</h1>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {initialProducts.map(p => <img key={p.id} src={p.image} alt={p.name} className="w-full h-48 object-cover rounded"/>)}
-      </div>
-    </div>
-  );
+    // Auth + Firestore
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  const Footer = () => (
-    <footer className="bg-gray-800 text-white py-6 mt-6 text-center">
-      <p>&copy; {new Date().getFullYear()} Gleam & Co.</p>
-      <p className="text-xs">Database: {isAuthReady?'Connected':'Initializing...'}</p>
-    </footer>
-  );
+    // ---------- App State ----------
+    let currentUserId = null;
+    const state = {
+      page: 'home', // home, gallery, contact, cart, checkout
+      cart: [],     // [{ productId, quantity }]
+      products: [
+        { id: 1, name: 'Gold Morse Code Necklace', price: 159.99, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: 'https://placehold.co/600x400?text=Gold+Necklace' },
+        { id: 2, name: 'Gold Morse Code Bracelet', price: 99.50, description: 'Delicate 14k gold bracelet with a Morse code message.', image: 'https://placehold.co/600x400?text=Gold+Bracelet' },
+        { id: 3, name: 'Silver Morse Code Necklace', price: 139.00, description: 'Polished silver necklace with a hidden message pattern.', image: 'https://placehold.co/600x400?text=Silver+Necklace' },
+        { id: 4, name: 'Silver Cord Bracelet Set', price: 89.00, description: 'Cord bracelet set with silver beads for customization.', image: 'https://placehold.co/600x400?text=Silver+Cord+Set' },
+      ],
+      message: '',
+      isAuthReady: false,
+    };
 
-  const renderPage = () => {
-    switch(page) {
-      case 'cart': return <Cart />;
-      case 'checkout': return <Checkout />;
-      case 'contact': return <ContactUs />;
-      case 'gallery': return <Gallery />;
-      default: return <Home />;
+    // ---------- Authentication (anonymous) ----------
+    async function ensureAnonymousSignIn() {
+      // onAuthStateChanged will call immediately with current state (if any).
+      onAuthStateChanged(auth, user => {
+        if (user) {
+          currentUserId = user.uid;
+          state.isAuthReady = true;
+          render();
+          console.info("Signed in (existing):", currentUserId);
+        } else {
+          // sign in anonymously
+          signInAnonymously(auth).then(cred => {
+            currentUserId = cred.user.uid;
+            state.isAuthReady = true;
+            render();
+            console.info("Signed in anonymously:", currentUserId);
+          }).catch(err => {
+            console.error("Anonymous sign-in failed:", err);
+            state.isAuthReady = true;
+            render();
+          });
+        }
+      });
     }
-  };
+    ensureAnonymousSignIn();
 
-  return (
-    <div>
-      <Navbar />
-      {message && <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-pink-500 text-white px-6 py-2 rounded">{message}</div>}
-      {renderPage()}
-      <Footer />
-    </div>
-  );
-};
+    // ---------- Utility: find product ----------
+    function findProduct(id) {
+      return state.products.find(p => p.id === Number(id));
+    }
 
-// Mount React App
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-</script>
+    // Cart helpers
+    function addToCart(productId) {
+      const existing = state.cart.find(i => i.productId === productId);
+      if (existing) existing.quantity++;
+      else state.cart.push({ productId, quantity: 1 });
+      flashMessage('Added to cart');
+      render();
+    }
+    function updateQuantity(productId, qty) {
+      if (qty <= 0) {
+        state.cart = state.cart.filter(i => i.productId !== productId);
+      } else {
+        const item = state.cart.find(i => i.productId === productId);
+        if (item) item.quantity = qty;
+      }
+      render();
+    }
+    function clearCart() {
+      state.cart = [];
+      flashMessage('Cart cleared');
+      render();
+    }
+    function cartItems() {
+      return state.cart
+        .map(ci => {
+          const p = findProduct(ci.productId);
+          if (!p) return null;
+          return { ...p, quantity: ci.quantity, subtotal: +(p.price * ci.quantity).toFixed(2) };
+        })
+        .filter(Boolean);
+    }
+    function cartTotal() {
+      return cartItems().reduce((s, it) => s + it.subtotal, 0);
+    }
 
+    // Flash message
+    let flashTimer = null;
+    function flashMessage(msg, ms = 3000) {
+      state.message = msg;
+      render();
+      if (flashTimer) clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => { state.message = ''; render(); }, ms);
+    }
+
+    // ---------- Firestore writes (orders + contact_messages) ----------
+    async function submitOrderToFirestore(orderData) {
+      if (!currentUserId) {
+        flashMessage('Auth not ready — waiting...');
+        return false;
+      }
+      try {
+        const colRef = collection(db, 'orders'); // root-level collection
+        await addDoc(colRef, { ...orderData, userId: currentUserId, timestamp: serverTimestamp() });
+        flashMessage('Order submitted — thank you!');
+        return true;
+      } catch (e) {
+        console.error('Error submitting order:', e);
+        flashMessage('Order failed — check console');
+        return false;
+      }
+    }
+
+    async function submitContactToFirestore(contactData) {
+      if (!currentUserId) {
+        flashMessage('Auth not ready — waiting...');
+        return false;
+      }
+      try {
+        const colRef = collection(db, 'contact_messages');
+        await addDoc(colRef, { ...contactData, userId: currentUserId, timestamp: serverTimestamp() });
+        flashMessage('Message sent — thanks!');
+        return true;
+      } catch (e) {
+        console.error('Error sending message:', e);
+        flashMessage('Message failed — check console');
+        return false;
+      }
+    }
+
+    // ---------- DOM rendering ----------
+    const root = document.getElementById('root');
+
+    function render() {
+      const readyClass = state.isAuthReady ? 'visible-ready' : 'hidden-until-ready';
+      root.className = readyClass;
+
+      root.innerHTML = `
+        <div class="min-h-screen flex flex-col">
+          ${renderNavbar()}
+          <main class="flex-1">
+            ${state.page === 'home' ? renderHome() : ''}
+            ${state.page === 'gallery' ? renderGallery() : ''}
+            ${state.page === 'contact' ? renderContact() : ''}
+            ${state.page === 'cart' ? renderCart() : ''}
+            ${state.page === 'checkout' ? renderCheckout() : ''}
+          </main>
+          ${renderFooter()}
+          ${state.message ? `<div id="flash" class="fixed top-6 left-1/2 transform -translate-x-1/2 bg-pink-600 text-white px-6 py-2 rounded shadow">${escapeHtml(state.message)}</div>` : ''}
+        </div>
+      `;
+
+      // Attach event listeners that can't be attached via inline handlers easily:
+
+      // Navbar buttons
+      document.querySelectorAll('[data-nav]').forEach(btn => {
+        btn.onclick = () => { state.page = btn.getAttribute('data-nav'); render(); window.scrollTo(0,0); };
+      });
+
+      // Add to cart buttons
+      document.querySelectorAll('[data-add-product]').forEach(btn => {
+        btn.onclick = () => addToCart(Number(btn.getAttribute('data-add-product')));
+      });
+
+      // Cart quantity inputs
+      document.querySelectorAll('[data-cart-qty]').forEach(input => {
+        input.onchange = () => {
+          const id = Number(input.getAttribute('data-cart-qty'));
+          const value = parseInt(input.value) || 0;
+          updateQuantity(id, value);
+        };
+      });
+
+      // Clear cart
+      const clearBtn = document.getElementById('btn-clear-cart');
+      if (clearBtn) clearBtn.onclick = clearCart;
+
+      // Checkout / contact form handlers
+      const checkoutForm = document.getElementById('checkout-form');
+      if (checkoutForm) checkoutForm.onsubmit = handleCheckoutSubmit;
+
+      const contactForm = document.getElementById('contact-form');
+      if (contactForm) contactForm.onsubmit = handleContactSubmit;
+    }
+
+    // ---------- Small helper: escape HTML ----------
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    }
+
+    // ---------- Render parts ----------
+    function renderNavbar() {
+      const cartCount = state.cart.reduce((s,i) => s + i.quantity, 0);
+      return `
+        <nav class="bg-white shadow sticky top-0 z-20">
+          <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div>
+              <button data-nav="home" class="text-2xl font-bold text-pink-600">Gleam & Co. (Morse)</button>
+            </div>
+            <div class="flex items-center space-x-4">
+              <button data-nav="home" class="text-sm text-gray-700 hover:text-pink-600">Shop</button>
+              <button data-nav="gallery" class="text-sm text-gray-700 hover:text-pink-600">Gallery</button>
+              <button data-nav="contact" class="text-sm text-gray-700 hover:text-pink-600">Contact</button>
+              <button data-nav="cart" class="relative p-2 text-gray-700 hover:text-pink-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="inline h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
+                </svg>
+                ${cartCount ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">${cartCount}</span>` : ''}
+              </button>
+            </div>
+          </div>
+        </nav>
+      `;
+    }
+
+    function renderHome() {
+      return `
+        <section class="py-12 px-4 max-w-7xl mx-auto">
+          <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-4">Personalized Morse Code Jewelry</h1>
+          <p class="text-lg text-gray-600 text-center mb-8">Convert any name or secret message into a beautiful, wearable piece.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            ${state.products.map(p => `
+              <article class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-48 object-cover" />
+                <div class="p-4">
+                  <h3 class="text-lg font-semibold">${escapeHtml(p.name)}</h3>
+                  <p class="text-sm text-gray-500 h-12 overflow-hidden">${escapeHtml(p.description)}</p>
+                  <div class="mt-4 flex items-center justify-between">
+                    <strong class="text-pink-600 text-xl">$${p.price.toFixed(2)}</strong>
+                    <button data-add-product="${p.id}" class="px-4 py-2 bg-pink-600 text-white rounded-lg">Add to Cart</button>
+                  </div>
+                </div>
+              </article>
+            `).join('')}
+          </div>
+
+          <div class="max-w-2xl mx-auto mt-12 p-6 bg-yellow-50 rounded-xl border border-yellow-200 text-center">
+            <h3 class="text-xl font-bold text-yellow-800 mb-2">What is Morse Code Jewelry?</h3>
+            <p class="text-gray-700">Each piece uses beads (dots) and short tubes (dashes) to spell names or messages—subtle and personal.</p>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderGallery() {
+      return `
+        <section class="py-12 px-4 max-w-7xl mx-auto">
+          <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-4">Customer Spotlight Gallery</h1>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            ${state.products.map(p => `
+              <div class="bg-white rounded-xl shadow overflow-hidden">
+                <div class="aspect-[1/1]"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-full object-cover" /></div>
+                <div class="p-4 text-center"><p class="text-sm font-medium">${escapeHtml(p.name)}</p></div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="text-center mt-12">
+            <button class="px-8 py-3 bg-pink-600 text-white rounded-lg" data-nav="home">Start Customizing Now</button>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderCart() {
+      const items = cartItems();
+      if (items.length === 0) {
+        return `
+          <section class="py-12 px-4 max-w-3xl mx-auto text-center">
+            <h2 class="text-2xl font-bold mb-4">Your cart is empty</h2>
+            <button class="px-6 py-2 bg-pink-600 text-white rounded" data-nav="home">Shop Now</button>
+          </section>
+        `;
+      }
+      return `
+        <section class="py-12 px-4 max-w-4xl mx-auto">
+          <h2 class="text-3xl font-bold mb-6">Your Shopping Cart</h2>
+          <div class="space-y-4">
+            ${items.map(it => `
+              <div class="flex items-center bg-white p-4 rounded-lg shadow">
+                <img src="${escapeHtml(it.image)}" alt="${escapeHtml(it.name)}" class="w-20 h-20 object-cover rounded mr-4" />
+                <div class="flex-1">
+                  <h3 class="font-semibold">${escapeHtml(it.name)}</h3>
+                  <p class="text-gray-600">$${it.price.toFixed(2)}</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                  <input data-cart-qty="${it.id}" type="number" min="1" value="${it.quantity}" class="w-20 p-2 border rounded" />
+                  <span class="text-lg font-bold">$${it.subtotal.toFixed(2)}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between items-center">
+            <h3 class="text-2xl font-bold">Total</h3>
+            <div class="text-3xl font-extrabold text-pink-600">$${cartTotal().toFixed(2)}</div>
+          </div>
+
+          <div class="mt-6 flex justify-end gap-4">
+            <button id="btn-clear-cart" class="px-6 py-3 border rounded">Clear Cart</button>
+            <button class="px-6 py-3 bg-pink-600 text-white rounded" data-nav="checkout">Proceed to Checkout</button>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderCheckout() {
+      const items = cartItems();
+      if (items.length === 0) {
+        return `<section class="py-12 px-4 max-w-2xl mx-auto text-center"><p class="text-lg">Your cart is empty.</p><div class="mt-4"><button class="px-4 py-2 bg-pink-600 text-white rounded" data-nav="home">Go shopping</button></div></section>`;
+      }
+      return `
+        <section class="py-12 px-4 max-w-2xl mx-auto">
+          <h2 class="text-3xl font-bold mb-6">Checkout</h2>
+          <form id="checkout-form" class="bg-white p-6 rounded shadow space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Full name</label>
+              <input name="name" required class="mt-1 block w-full p-2 border rounded" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Shipping address</label>
+              <textarea name="address" required class="mt-1 block w-full p-2 border rounded"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Card number (simulated)</label>
+              <input name="card" required placeholder="16 digits" pattern="\\d{16}" maxlength="16" class="mt-1 block w-full p-2 border rounded" />
+            </div>
+
+            <div>
+              <h3 class="font-semibold">Order Summary</h3>
+              <ul class="mt-2 space-y-1 text-gray-700">
+                ${items.map(it => `<li>${escapeHtml(it.name)} x ${it.quantity} — $${it.subtotal.toFixed(2)}</li>`).join('')}
+              </ul>
+              <div class="mt-2 text-right font-bold">Total: $${cartTotal().toFixed(2)}</div>
+            </div>
+
+            <div class="flex justify-end">
+              <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded">Pay $${cartTotal().toFixed(2)}</button>
+            </div>
+          </form>
+        </section>
+      `;
+    }
+
+    function renderContact() {
+      return `
+        <section class="py-12 px-4 max-w-xl mx-auto">
+          <h2 class="text-3xl font-bold mb-4 text-center">Contact Us</h2>
+          <form id="contact-form" class="bg-white p-6 rounded shadow space-y-4">
+            <input name="name" placeholder="Name" required class="w-full p-2 border rounded" />
+            <input name="email" type="email" placeholder="Email" required class="w-full p-2 border rounded" />
+            <textarea name="message" placeholder="Message" required class="w-full p-2 border rounded"></textarea>
+            <div class="text-center">
+              <button type="submit" class="px-6 py-2 bg-pink-600 text-white rounded">Send Message</button>
+            </div>
+            <p class="text-xs text-gray-500 mt-2 text-center">Current User ID: ${currentUserId ? escapeHtml(currentUserId) : 'Authenticating...'}</p>
+          </form>
+        </section>
+      `;
+    }
+
+    function renderFooter() {
+      return `
+        <footer class="bg-gray-800 text-white py-6 mt-8">
+          <div class="max-w-7xl mx-auto px-4 text-center">
+            <div>&copy; ${new Date().getFullYear()} Gleam & Co.</div>
+            <div class="text-xs text-gray-300 mt-1">Database status: ${state.isAuthReady ? 'Connected (Firestore)' : 'Initializing...'}</div>
+          </div>
+        </footer>
+      `;
+    }
+
+    // ---------- Form handlers ----------
+    async function handleCheckoutSubmit(evt) {
+      evt.preventDefault();
+      const form = evt.target;
+      const formData = new FormData(form);
+      // basic validation
+      const name = formData.get('name').trim();
+      const address = formData.get('address').trim();
+      const card = formData.get('card').trim();
+      if (!name || !address || !card) return flashMessage('Please fill required fields');
+
+      const order = {
+        customerName: name,
+        shippingAddress: address,
+        paymentMethod: `Card ending ${card.slice(-4)}`,
+        items: cartItems().map(it => ({ id: it.id, name: it.name, quantity: it.quantity, price: it.price })),
+        total: cartTotal(),
+      };
+
+      const ok = await submitOrderToFirestore(order);
+      if (ok) {
+        state.cart = [];
+        state.page = 'home';
+        render();
+      }
+    }
+
+    async function handleContactSubmit(evt) {
+      evt.preventDefault();
+      const form = evt.target;
+      const fd = new FormData(form);
+      const data = { name: fd.get('name').trim(), email: fd.get('email').trim(), message: fd.get('message').trim() };
+      if (!data.name || !data.email || !data.message) return flashMessage('Please fill required fields');
+      const ok = await submitContactToFirestore(data);
+      if (ok) {
+        form.reset();
+      }
+    }
+
+    // ---------- Initial render ----------
+    render();
+
+    // Expose some functions for debugging from console
+    window._app = {
+      state,
+      addToCart,
+      updateQuantity,
+      clearCart,
+      cartItems,
+      cartTotal,
+    };
+
+  </script>
 </body>
 </html>
