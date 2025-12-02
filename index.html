@@ -18,184 +18,335 @@
 </head>
 <body class="bg-gray-50">
 
-  <div id="root" class="hidden-until-ready"></div>
+<div id="root" class="hidden-until-ready"></div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDHRFiiklg8k8gmt1QGEstSM5hfTJvIZW8",
-      authDomain: "morse-code-jewelry.firebaseapp.com",
-      projectId: "morse-code-jewelry",
-      storageBucket: "morse-code-jewelry.firebasestorage.app",
-      messagingSenderId: "1034331508828",
-      appId: "1:1034331508828:web:08acf02e2363000e99d699",
-      measurementId: "G-C4WH6X1N1Z"
-    };
+// ---------- Firebase config ----------
+const firebaseConfig = {
+  apiKey: "AIzaSyDHRFiiklg8k8gmt1QGEstSM5hfTJvIZW8",
+  authDomain: "morse-code-jewelry.firebaseapp.com",
+  projectId: "morse-code-jewelry",
+  storageBucket: "morse-code-jewelry.firebasestorage.app",
+  messagingSenderId: "1034331508828",
+  appId: "1:1034331508828:web:08acf02e2363000e99d699",
+  measurementId: "G-C4WH6X1N1Z"
+};
 
-    const app = initializeApp(firebaseConfig);
-    try { getAnalytics(app); } catch(e) { console.info("Analytics init skipped:", e?.message || e); }
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+try { getAnalytics(app); } catch(e) { console.info("Analytics init skipped:", e?.message || e); }
 
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-    let currentUserId = null;
-    const state = {
-      page: 'home',
-      cart: [],
-      products: [
-        { id: 1, name: 'Gold Morse Code Necklace', price: 159.99, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
-        { id: 2, name: 'Gold Morse Code Bracelet', price: 99.50, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
-        { id: 3, name: 'Silver Morse Code Necklace', price: 139.00, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
-        { id: 4, name: 'Silver Cord Bracelet Set', price: 89.00, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
-      ],
-      message: '',
-      isAuthReady: false,
-    };
+let currentUserId = null;
+const state = {
+  page: 'home',
+  cart: [],
+  products: [
+    { id: 1, name: 'Gold Morse Code Necklace', price: 159.99, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
+    { id: 2, name: 'Gold Morse Code Bracelet', price: 99.50, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
+    { id: 3, name: 'Silver Morse Code Necklace', price: 139.00, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
+    { id: 4, name: 'Silver Cord Bracelet Set', price: 89.00, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
+  ],
+  message: '',
+  isAuthReady: false,
+};
 
-    async function ensureAnonymousSignIn() {
-      onAuthStateChanged(auth, user => {
-        if (user) {
-          currentUserId = user.uid;
-          state.isAuthReady = true;
-          render();
-        } else {
-          signInAnonymously(auth).then(cred => {
-            currentUserId = cred.user.uid;
-            state.isAuthReady = true;
-            render();
-          }).catch(err => {
-            console.error("Anonymous sign-in failed:", err);
-            state.isAuthReady = true;
-            render();
-          });
-        }
+// ---------- Authentication ----------
+async function ensureAnonymousSignIn() {
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      currentUserId = user.uid;
+      state.isAuthReady = true;
+      render();
+    } else {
+      signInAnonymously(auth).then(cred => {
+        currentUserId = cred.user.uid;
+        state.isAuthReady = true;
+        render();
+      }).catch(err => {
+        console.error("Anonymous sign-in failed:", err);
+        state.isAuthReady = true;
+        render();
       });
     }
-    ensureAnonymousSignIn();
+  });
+}
+ensureAnonymousSignIn();
 
-    function findProduct(id) {
-      return state.products.find(p => p.id === Number(id));
-    }
+// ---------- Utility ----------
+function findProduct(id) { return state.products.find(p=>p.id===Number(id)); }
 
-    function addToCart(productId) {
-      const existing = state.cart.find(i => i.productId === productId);
-      if (existing) existing.quantity++;
-      else state.cart.push({ productId, quantity: 1 });
-      flashMessage('Added to cart');
-      render();
-    }
+function addToCart(productId) {
+  const existing = state.cart.find(i => i.productId === productId);
+  if(existing) existing.quantity++;
+  else state.cart.push({productId, quantity:1});
+  flashMessage('Added to cart');
+  render();
+}
 
-    function updateQuantity(productId, qty) {
-      if (qty <= 0) state.cart = state.cart.filter(i => i.productId !== productId);
-      else { const item = state.cart.find(i => i.productId === productId); if(item) item.quantity = qty; }
-      render();
-    }
+function updateQuantity(productId, qty){
+  if(qty<=0) state.cart = state.cart.filter(i=>i.productId!==productId);
+  else { const item = state.cart.find(i=>i.productId===productId); if(item) item.quantity=qty; }
+  render();
+}
 
-    function clearCart() { state.cart = []; flashMessage('Cart cleared'); render(); }
+function clearCart() { state.cart=[]; flashMessage('Cart cleared'); render(); }
 
-    function cartItems() {
-      return state.cart.map(ci => {
-        const p = findProduct(ci.productId);
-        if (!p) return null;
-        return { ...p, quantity: ci.quantity, subtotal: +(p.price * ci.quantity).toFixed(2) };
-      }).filter(Boolean);
-    }
+function cartItems() {
+  return state.cart.map(ci=>{
+    const p=findProduct(ci.productId);
+    if(!p) return null;
+    return {...p, quantity: ci.quantity, subtotal: +(p.price*ci.quantity).toFixed(2)};
+  }).filter(Boolean);
+}
 
-    function cartTotal() { return cartItems().reduce((s,it) => s+it.subtotal, 0); }
+function cartTotal() { return cartItems().reduce((s,it)=>s+it.subtotal,0); }
 
-    let flashTimer = null;
-    function flashMessage(msg, ms=3000) {
-      state.message = msg;
-      render();
-      if(flashTimer) clearTimeout(flashTimer);
-      flashTimer = setTimeout(()=>{ state.message=''; render(); }, ms);
-    }
+let flashTimer = null;
+function flashMessage(msg,ms=3000){
+  state.message=msg;
+  render();
+  if(flashTimer) clearTimeout(flashTimer);
+  flashTimer=setTimeout(()=>{state.message=''; render();}, ms);
+}
 
-    async function submitOrderToFirestore(orderData) {
-      if (!currentUserId) { flashMessage('Auth not ready'); return false; }
-      try { await addDoc(collection(db,'orders'), {...orderData,userId:currentUserId,timestamp:serverTimestamp()}); flashMessage('Order submitted'); return true; }
-      catch(e){console.error(e); flashMessage('Order failed'); return false;}
-    }
+// ---------- Firestore ----------
+async function submitOrderToFirestore(orderData){
+  if(!currentUserId){ flashMessage('Auth not ready'); return false; }
+  try{ await addDoc(collection(db,'orders'), {...orderData,userId:currentUserId,timestamp:serverTimestamp()}); flashMessage('Order submitted'); return true; }
+  catch(e){ console.error(e); flashMessage('Order failed'); return false; }
+}
 
-    async function submitContactToFirestore(contactData) {
-      if (!currentUserId) { flashMessage('Auth not ready'); return false; }
-      try { await addDoc(collection(db,'contact_messages'), {...contactData,userId:currentUserId,timestamp:serverTimestamp()}); flashMessage('Message sent'); return true; }
-      catch(e){console.error(e); flashMessage('Message failed'); return false;}
-    }
+async function submitContactToFirestore(contactData){
+  if(!currentUserId){ flashMessage('Auth not ready'); return false; }
+  try{ await addDoc(collection(db,'contact_messages'), {...contactData,userId:currentUserId,timestamp:serverTimestamp()}); flashMessage('Message sent'); return true; }
+  catch(e){ console.error(e); flashMessage('Message failed'); return false; }
+}
 
-    const root = document.getElementById('root');
+// ---------- DOM ----------
+const root = document.getElementById('root');
+function escapeHtml(str){ if(!str) return ''; return String(str).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
 
-    function escapeHtml(str) { if(!str) return ''; return String(str).replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
+// ---------- Render Functions ----------
+function renderNavbar(){
+  const cartCount = state.cart.reduce((s,i)=>s+i.quantity,0);
+  return `
+  <nav class="bg-white shadow sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex-1 flex justify-center">
+        <img src="./morsecodelogo.png" alt="Gleam & Co. Logo" class="h-16">
+      </div>
+      <div class="flex items-center space-x-4">
+        <button data-nav="home" class="text-sm text-gray-700 hover:text-pink-600">Shop</button>
+        <button data-nav="gallery" class="text-sm text-gray-700 hover:text-pink-600">Gallery</button>
+        <button data-nav="contact" class="text-sm text-gray-700 hover:text-pink-600">Contact</button>
+        <button data-nav="cart" class="relative p-2 text-gray-700 hover:text-pink-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="inline h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
+          </svg>
+          ${cartCount ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">${cartCount}</span>` : ''}
+        </button>
+      </div>
+    </div>
+  </nav>`;
+}
 
-    // -------------------- KEEP ALL YOUR ORIGINAL RENDER FUNCTIONS BELOW --------------------
-    // renderNavbar, renderHome, renderGallery, renderCart, renderCheckout, renderContact, renderFooter
-    // Just update renderNavbar logo section:
-
-    function renderNavbar() {
-      const cartCount = state.cart.reduce((s,i)=>s+i.quantity,0);
-      return `
-        <nav class="bg-white shadow sticky top-0 z-20">
-          <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div class="flex-1 flex justify-center">
-              <img src="./morsecodelogo.png" alt="Gleam & Co. Logo" class="h-16">
-            </div>
-            <div class="flex items-center space-x-4">
-              <button data-nav="home" class="text-sm text-gray-700 hover:text-pink-600">Shop</button>
-              <button data-nav="gallery" class="text-sm text-gray-700 hover:text-pink-600">Gallery</button>
-              <button data-nav="contact" class="text-sm text-gray-700 hover:text-pink-600">Contact</button>
-              <button data-nav="cart" class="relative p-2 text-gray-700 hover:text-pink-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="inline h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
-                </svg>
-                ${cartCount ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">${cartCount}</span>` : ''}
-              </button>
-            </div>
+function renderHome(){
+  return `
+  <section class="py-12 px-4 max-w-7xl mx-auto">
+    <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-4">Personalized Morse Code Jewelry</h1>
+    <p class="text-lg text-gray-600 text-center mb-8">Convert any name or secret message into a beautiful, wearable piece.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      ${state.products.map(p=>`
+      <article class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-48 object-cover" />
+        <div class="p-4">
+          <h3 class="text-lg font-semibold">${escapeHtml(p.name)}</h3>
+          <p class="text-sm text-gray-500 h-12 overflow-hidden">${escapeHtml(p.description)}</p>
+          <div class="mt-4 flex items-center justify-between">
+            <strong class="text-pink-600 text-xl">$${p.price.toFixed(2)}</strong>
+            <button data-add-product="${p.id}" class="px-4 py-2 bg-pink-600 text-white rounded-lg">Add to Cart</button>
           </div>
-        </nav>
-      `;
-    }
-
-    // -------------------- END NAVBAR EDIT --------------------
-    // Paste all your original renderHome, renderGallery, renderCart, renderCheckout, renderContact, renderFooter functions here exactly as before
-
-    // ---------- Render function ----------
-    function render() {
-      const readyClass = state.isAuthReady ? 'visible-ready' : 'hidden-until-ready';
-      root.className = readyClass;
-
-      root.innerHTML = `
-        <div class="min-h-screen flex flex-col">
-          ${renderNavbar()}
-          <main class="flex-1">
-            ${state.page==='home'?renderHome():''}
-            ${state.page==='gallery'?renderGallery():''}
-            ${state.page==='contact'?renderContact():''}
-            ${state.page==='cart'?renderCart():''}
-            ${state.page==='checkout'?renderCheckout():''}
-          </main>
-          ${renderFooter()}
-          ${state.message?`<div id="flash" class="fixed top-6 left-1/2 transform -translate-x-1/2 bg-pink-600 text-white px-6 py-2 rounded shadow">${escapeHtml(state.message)}</div>`:''}
         </div>
-      `;
+      </article>`).join('')}
+    </div>
+  </section>`;
+}
 
-      document.querySelectorAll('[data-nav]').forEach(btn=>btn.onclick=()=>{ state.page=btn.getAttribute('data-nav'); render(); window.scrollTo(0,0); });
-      document.querySelectorAll('[data-add-product]').forEach(btn=>btn.onclick=()=>addToCart(Number(btn.getAttribute('data-add-product'))));
-      document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ const id=Number(input.getAttribute('data-cart-qty')); const value=parseInt(input.value)||0; updateQuantity(id,value); });
-      const clearBtn = document.getElementById('btn-clear-cart'); if(clearBtn) clearBtn.onclick=clearCart;
-      const checkoutForm = document.getElementById('checkout-form'); if(checkoutForm) checkoutForm.onsubmit=handleCheckoutSubmit;
-      const contactForm = document.getElementById('contact-form'); if(contactForm) contactForm.onsubmit=handleContactSubmit;
-    }
+function renderGallery(){
+  return `
+  <section class="py-12 px-4 max-w-7xl mx-auto">
+    <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-4">Customer Spotlight Gallery</h1>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      ${state.products.map(p=>`
+      <div class="bg-white rounded-xl shadow overflow-hidden">
+        <div class="aspect-[1/1]"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-full object-cover" /></div>
+        <div class="p-4 text-center"><p class="text-sm font-medium">${escapeHtml(p.name)}</p></div>
+      </div>`).join('')}
+    </div>
+    <div class="text-center mt-12">
+      <button class="px-8 py-3 bg-pink-600 text-white rounded-lg" data-nav="home">Start Customizing Now</button>
+    </div>
+  </section>`;
+}
 
-    async function handleCheckoutSubmit(evt) { /* your existing code */ }
-    async function handleContactSubmit(evt) { /* your existing code */ }
+// ---------- Render Cart, Checkout, Contact, Footer ----------
+function renderCart(){
+  const items = cartItems();
+  if(items.length===0) return `<section class="py-12 px-4 max-w-3xl mx-auto text-center"><h2 class="text-2xl font-bold mb-4">Your cart is empty</h2><button class="px-6 py-2 bg-pink-600 text-white rounded" data-nav="home">Shop Now</button></section>`;
+  return `
+  <section class="py-12 px-4 max-w-4xl mx-auto">
+    <h2 class="text-3xl font-bold mb-6">Your Shopping Cart</h2>
+    <div class="space-y-4">
+      ${items.map(it=>`
+      <div class="flex items-center bg-white p-4 rounded-lg shadow">
+        <img src="${escapeHtml(it.image)}" alt="${escapeHtml(it.name)}" class="w-20 h-20 object-cover rounded mr-4" />
+        <div class="flex-1">
+          <h3 class="font-semibold">${escapeHtml(it.name)}</h3>
+          <p class="text-gray-600">$${it.price.toFixed(2)}</p>
+        </div>
+        <div class="flex items-center space-x-4">
+          <input data-cart-qty="${it.id}" type="number" min="1" value="${it.quantity}" class="w-20 p-2 border rounded" />
+          <span class="text-lg font-bold">$${it.subtotal.toFixed(2)}</span>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between items-center">
+      <h3 class="text-2xl font-bold">Total</h3>
+      <div class="text-3xl font-extrabold text-pink-600">$${cartTotal().toFixed(2)}</div>
+    </div>
+    <div class="mt-6 flex justify-end gap-4">
+      <button id="btn-clear-cart" class="px-6 py-3 border rounded">Clear Cart</button>
+      <button class="px-6 py-3 bg-pink-600 text-white rounded" data-nav="checkout">Proceed to Checkout</button>
+    </div>
+  </section>`;
+}
 
-    render();
+function renderCheckout(){
+  const items = cartItems();
+  if(items.length===0) return `<section class="py-12 px-4 max-w-2xl mx-auto text-center"><p class="text-lg">Your cart is empty.</p><div class="mt-4"><button class="px-4 py-2 bg-pink-600 text-white rounded" data-nav="home">Go shopping</button></div></section>`;
+  return `
+  <section class="py-12 px-4 max-w-2xl mx-auto">
+    <h2 class="text-3xl font-bold mb-6">Checkout</h2>
+    <form id="checkout-form" class="bg-white p-6 rounded shadow space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Full name</label>
+        <input name="name" required class="mt-1 block w-full p-2 border rounded" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Shipping address</label>
+        <textarea name="address" required class="mt-1 block w-full p-2 border rounded"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Card number (simulated)</label>
+        <input name="card" required placeholder="16 digits" pattern="\\d{16}" maxlength="16" class="mt-1 block w-full p-2 border rounded" />
+      </div>
+      <div>
+        <h3 class="font-semibold">Order Summary</h3>
+        <ul class="mt-2 space-y-1 text-gray-700">
+          ${items.map(it=>`<li>${escapeHtml(it.name)} x ${it.quantity} — $${it.subtotal.toFixed(2)}</li>`).join('')}
+        </ul>
+        <div class="mt-2 text-right font-bold">Total: $${cartTotal().toFixed(2)}</div>
+      </div>
+      <div class="flex justify-end">
+        <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded">Pay $${cartTotal().toFixed(2)}</button>
+      </div>
+    </form>
+  </section>`;
+}
 
-    window._app={state,addToCart,updateQuantity,clearCart,cartItems,cartTotal};
-  </script>
+function renderContact(){
+  return `
+  <section class="py-12 px-4 max-w-xl mx-auto">
+    <h2 class="text-3xl font-bold mb-4 text-center">Contact Us</h2>
+    <form id="contact-form" class="bg-white p-6 rounded shadow space-y-4">
+      <input name="name" placeholder="Name" required class="w-full p-2 border rounded" />
+      <input name="email" type="email" placeholder="Email" required class="w-full p-2 border rounded" />
+      <textarea name="message" placeholder="Message" required class="w-full p-2 border rounded"></textarea>
+      <div class="text-center">
+        <button type="submit" class="px-6 py-2 bg-pink-600 text-white rounded">Send Message</button>
+      </div>
+      <p class="text-xs text-gray-500 mt-2 text-center">Current User ID: ${currentUserId?escapeHtml(currentUserId):'Authenticating...'}</p>
+    </form>
+  </section>`;
+}
+
+function renderFooter(){
+  return `
+  <footer class="bg-gray-800 text-white py-6 mt-8">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <div>&copy; ${new Date().getFullYear()} Gleam & Co.</div>
+      <div class="text-xs text-gray-300 mt-1">Database status: ${state.isAuthReady?'Connected (Firestore)':'Initializing...'}</div>
+    </div>
+  </footer>`;
+}
+
+// ---------- Render ----------
+function render(){
+  const readyClass = state.isAuthReady?'visible-ready':'hidden-until-ready';
+  root.className=readyClass;
+
+  root.innerHTML=`
+    <div class="min-h-screen flex flex-col">
+      ${renderNavbar()}
+      <main class="flex-1">
+        ${state.page==='home'?renderHome():''}
+        ${state.page==='gallery'?renderGallery():''}
+        ${state.page==='contact'?renderContact():''}
+        ${state.page==='cart'?renderCart():''}
+        ${state.page==='checkout'?renderCheckout():''}
+      </main>
+      ${renderFooter()}
+      ${state.message?`<div id="flash" class="fixed top-6 left-1/2 transform -translate-x-1/2 bg-pink-600 text-white px-6 py-2 rounded shadow">${escapeHtml(state.message)}</div>`:''}
+    </div>
+  `;
+
+  document.querySelectorAll('[data-nav]').forEach(btn=>btn.onclick=()=>{ state.page=btn.getAttribute('data-nav'); render(); window.scrollTo(0,0); });
+  document.querySelectorAll('[data-add-product]').forEach(btn=>btn.onclick=()=>addToCart(Number(btn.getAttribute('data-add-product'))));
+  document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ const id=Number(input.getAttribute('data-cart-qty')); const value=parseInt(input.value)||0; updateQuantity(id,value); });
+  const clearBtn = document.getElementById('btn-clear-cart'); if(clearBtn) clearBtn.onclick=clearCart;
+  const checkoutForm = document.getElementById('checkout-form'); if(checkoutForm) checkoutForm.onsubmit=handleCheckoutSubmit;
+  const contactForm = document.getElementById('contact-form'); if(contactForm) contactForm.onsubmit=handleContactSubmit;
+}
+
+// ---------- Form Handlers ----------
+async function handleCheckoutSubmit(evt){
+  evt.preventDefault();
+  const form = evt.target;
+  const name=form.name.value.trim();
+  const address=form.address.value.trim();
+  const card=form.card.value.trim();
+  if(!name||!address||!card){ flashMessage('Please fill all fields'); return; }
+
+  const orderData = {name,address,card,items:cartItems()};
+  const success = await submitOrderToFirestore(orderData);
+  if(success){ clearCart(); state.page='home'; render(); }
+}
+
+async function handleContactSubmit(evt){
+  evt.preventDefault();
+  const form = evt.target;
+  const name=form.name.value.trim();
+  const email=form.email.value.trim();
+  const message=form.message.value.trim();
+  if(!name||!email||!message){ flashMessage('Please fill all fields'); return; }
+
+  const contactData = {name,email,message};
+  const success = await submitContactToFirestore(contactData);
+  if(success){ form.reset(); }
+}
+
+// ---------- Initial Render ----------
+render();
+window._app={state,addToCart,updateQuantity,clearCart,cartItems,cartTotal};
+
+</script>
 </body>
 </html>
