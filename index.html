@@ -43,6 +43,43 @@
     <!-- 1. Load the Firebase SDKs (Required for authentication and database operations) -->
 
     <script type="module">
+// ------------------------------
+// FIREBASE INITIALIZATION
+// ------------------------------
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+// Your Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyBPFHirKiLqk8gmt1QGEStM5HfTJvIZw8",
+  authDomain: "morse-code-jewelry.firebaseapp.com",
+  projectId: "morse-code-jewelry",
+  storageBucket: "morse-code-jewelry.appspot.com",
+  messagingSenderId: "1034331508828",
+  appId: "1:1034331508828:web:08acf02e2363000e99d6d9",
+  measurementId: "G-C4WH6XN1IZ"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Sign-in anonymously (required for Firestore)
+let userId = null;
+signInAnonymously(auth)
+  .then((cred) => {
+    userId = cred.user.uid;
+    console.log("Anonymous user signed in:", userId);
+  })
+  .catch((error) => {
+    console.error("Firebase Auth Error:", error);
+  });
+
+// Export for use in other functions
+window.db = db;
+window.userId = userId;
 
         // Import all necessary Firebase modules
 
