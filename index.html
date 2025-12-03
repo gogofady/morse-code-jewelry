@@ -49,8 +49,7 @@ let currentUserId = null;
 const state = {
   page: 'home',
   cart: [],
-  selectedProductId: null, // Track which product is being viewed
-  // Updated Products with Original Prices for Discount Display
+  selectedProductId: null, 
   products: [
     { id: 1, name: 'Gold Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
     { id: 2, name: 'Gold Morse Code Bracelet', price: 550, originalPrice: 900, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
@@ -58,7 +57,7 @@ const state = {
     { id: 4, name: 'Silver Cord Bracelet Set', price: 550, originalPrice: 900, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
   ],
   message: '',
-  messageType: 'success', // 'success' (green) or 'error' (red)
+  messageType: 'success', 
   isAuthReady: false,
 };
 
@@ -121,17 +120,15 @@ function cartTotal() {
   return sub + SHIPPING_COST; 
 }
 
-// Updated Flash Message System (Green/Red)
 let flashTimer = null;
 function flashMessage(msg, type='success', ms=3000){
   state.message = msg;
-  state.messageType = type; // 'success' or 'error'
+  state.messageType = type;
   render();
   if(flashTimer) clearTimeout(flashTimer);
   flashTimer=setTimeout(()=>{state.message=''; render();}, ms);
 }
 
-// Navigation Helper
 function viewProduct(id) {
   state.selectedProductId = Number(id);
   state.page = 'product_detail';
@@ -162,17 +159,22 @@ function escapeHtml(str){ if(!str) return ''; return String(str).replace(/[&<>"'
 // ---------- Render Functions ----------
 function renderNavbar(){
   const cartCount = state.cart.reduce((s,i)=>s+i.quantity,0);
+  
+  // FIX: Added 'flex-col md:flex-row' and 'gap-4' to handle mobile layout
+  // On mobile (default), items stack. On desktop (md), they go side-by-side.
   return `
   <nav class="bg-white shadow sticky top-0 z-20">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div class="flex-1 flex items-center justify-center gap-3">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <div class="flex items-center justify-center gap-3">
         <img src="./morsecodelogo.png" alt="Morse Jewelry Logo" class="h-24">
         <span class="text-2xl font-bold text-gray-800 tracking-wide">Morse Jewelry</span>
       </div>
-      <div class="flex items-center space-x-4">
-        <button data-nav="home" class="text-sm text-gray-700 hover:text-pink-600">Shop</button>
-        <button data-nav="gallery" class="text-sm text-gray-700 hover:text-pink-600">Gallery</button>
-        <button data-nav="contact" class="text-sm text-gray-700 hover:text-pink-600">Contact</button>
+
+      <div class="flex items-center space-x-6">
+        <button data-nav="home" class="text-base font-medium text-gray-700 hover:text-pink-600">Shop</button>
+        <button data-nav="gallery" class="text-base font-medium text-gray-700 hover:text-pink-600">Gallery</button>
+        <button data-nav="contact" class="text-base font-medium text-gray-700 hover:text-pink-600">Contact</button>
         <button data-nav="cart" class="relative p-2 text-gray-700 hover:text-pink-600">
           <svg xmlns="http://www.w3.org/2000/svg" class="inline h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
@@ -180,6 +182,7 @@ function renderNavbar(){
           ${cartCount ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">${cartCount}</span>` : ''}
         </button>
       </div>
+
     </div>
   </nav>`;
 }
@@ -187,14 +190,39 @@ function renderNavbar(){
 function renderHome(){
   return `
   <section class="py-12 px-4 max-w-7xl mx-auto">
-    <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-4">Morse Jewelry</h1>
-    <p class="text-lg text-gray-600 text-center mb-8">Convert any name or secret message into a beautiful, wearable piece.</p>
+    <div class="text-center mb-16">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">Express Yourself in Secret</h1>
+        <p class="text-lg text-gray-600">Convert any name or hidden message into a beautiful, wearable piece of art.</p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-12 mb-16 flex flex-col md:flex-row items-center gap-12">
+        <div class="flex-1 space-y-4">
+            <h2 class="text-3xl font-bold text-gray-800">What is Morse Code?</h2>
+            <p class="text-gray-600 leading-relaxed">
+                Morse code is a famous character encoding scheme used in telecommunication that encodes text characters as standardized sequences of two different signal durations, called <strong>dots (.)</strong> and <strong>dashes (-)</strong>. Invented by Samuel Morse in the 1830s, it changed the world of communication forever.
+            </p>
+            <p class="text-gray-600 leading-relaxed">
+                <strong>How to use it in Jewelry:</strong><br>
+                We translate your name or a special word into this secret language using beads.
+                <br>• A <strong>Round Bead</strong> represents a Dot (.)
+                <br>• A <strong>Long Tube/Dash Bead</strong> represents a Dash (-)
+            </p>
+            <p class="text-pink-600 font-medium italic">It's a secret message that only you and your loved ones understand!</p>
+        </div>
+        <div class="flex-1 w-full">
+            <img src="./morsecode.webp" alt="Morse Code Alphabet Chart" class="w-full rounded-xl shadow-md object-cover transform hover:scale-105 transition duration-500">
+        </div>
+    </div>
+
+    <h2 class="text-2xl font-bold mb-6 text-gray-900 border-b pb-2">Our Collection</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       ${state.products.map(p=>`
-      <article class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col cursor-pointer transition hover:shadow-lg" onclick="window._app.viewProduct(${p.id})">
-        <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-48 object-cover" />
+      <article class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col cursor-pointer transition hover:shadow-lg group" onclick="window._app.viewProduct(${p.id})">
+        <div class="overflow-hidden">
+             <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-48 object-cover transition duration-500 group-hover:scale-110" />
+        </div>
         <div class="p-4 flex flex-col flex-1">
-          <h3 class="text-lg font-semibold">${escapeHtml(p.name)}</h3>
+          <h3 class="text-lg font-semibold group-hover:text-pink-600 transition">${escapeHtml(p.name)}</h3>
           <p class="text-sm text-gray-500 h-12 overflow-hidden">${escapeHtml(p.description)}</p>
           <div class="mt-auto pt-4 flex items-center justify-between">
             <div>
@@ -209,7 +237,6 @@ function renderHome(){
   </section>`;
 }
 
-// New View: Product Detail (Main Left, Others Right)
 function renderProductDetail() {
   const mainProduct = findProduct(state.selectedProductId) || state.products[0];
   const otherProducts = state.products.filter(p => p.id !== mainProduct.id);
@@ -220,18 +247,21 @@ function renderProductDetail() {
       
       <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
         <div class="mb-6">
-          <button data-nav="home" class="text-gray-500 hover:text-pink-600 mb-4">&larr; Back to Shop</button>
+          <button data-nav="home" class="text-gray-500 hover:text-pink-600 mb-4 inline-flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Back to Shop
+          </button>
           <img src="${escapeHtml(mainProduct.image)}" alt="${escapeHtml(mainProduct.name)}" class="w-full h-96 object-cover rounded-lg shadow-sm">
         </div>
         <h1 class="text-3xl font-extrabold text-gray-900 mb-2">${escapeHtml(mainProduct.name)}</h1>
         <p class="text-gray-600 mb-6 text-lg leading-relaxed">${escapeHtml(mainProduct.description)}</p>
         
-        <div class="flex items-center justify-between border-t pt-6">
+        <div class="flex flex-col sm:flex-row items-center justify-between border-t pt-6 gap-4">
           <div>
             <span class="text-xl text-gray-400 line-through mr-2">${mainProduct.originalPrice} EGP</span>
             <span class="text-4xl font-extrabold text-pink-600">${mainProduct.price.toFixed(2)} EGP</span>
           </div>
-          <button onclick="window._app.addToCart(${mainProduct.id})" class="px-8 py-4 bg-pink-600 text-white text-lg font-bold rounded-lg shadow hover:bg-pink-700 transform transition hover:scale-105">
+          <button onclick="window._app.addToCart(${mainProduct.id})" class="w-full sm:w-auto px-8 py-4 bg-pink-600 text-white text-lg font-bold rounded-lg shadow hover:bg-pink-700 transform transition hover:scale-105">
             Add to Cart
           </button>
         </div>
@@ -423,7 +453,6 @@ function render(){
   const readyClass = state.isAuthReady?'visible-ready':'hidden-until-ready';
   root.className=readyClass;
 
-  // Choose content based on page state
   let content = '';
   if (state.page === 'home') content = renderHome();
   else if (state.page === 'gallery') content = renderGallery();
@@ -432,7 +461,6 @@ function render(){
   else if (state.page === 'checkout') content = renderCheckout();
   else if (state.page === 'product_detail') content = renderProductDetail();
 
-  // Color logic for flash message
   const flashColorClass = state.messageType === 'success' ? 'bg-green-600' : 'bg-red-600';
 
   root.innerHTML=`
@@ -454,7 +482,6 @@ function render(){
   const checkoutForm = document.getElementById('checkout-form'); if(checkoutForm) checkoutForm.onsubmit=handleCheckoutSubmit;
   const contactForm = document.getElementById('contact-form'); if(contactForm) contactForm.onsubmit=handleContactSubmit;
   
-  // Re-attach listeners for qty inputs if cart is open
   document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ 
     const id=Number(input.getAttribute('data-cart-qty')); 
     const value=parseInt(input.value)||0; 
@@ -512,7 +539,6 @@ async function handleContactSubmit(evt){
   if(success){ form.reset(); }
 }
 
-// Expose functions globally so onclick="" works in HTML strings
 window._app={state, addToCart, viewProduct, updateQuantity, clearCart, cartItems, cartTotal};
 
 render();
