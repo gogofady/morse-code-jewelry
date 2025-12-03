@@ -47,7 +47,6 @@ let currentUserId = null;
 const state = {
   page: 'home',
   cart: [],
-  // Points 4 & 5: Updated Prices (Necklace 750, Bracelet 550)
   products: [
     { id: 1, name: 'Gold Morse Code Necklace', price: 750, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
     { id: 2, name: 'Gold Morse Code Bracelet', price: 550, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
@@ -58,7 +57,6 @@ const state = {
   isAuthReady: false,
 };
 
-// Point 7: Shipping Fees
 const SHIPPING_COST = 100;
 
 // ---------- Authentication ----------
@@ -129,8 +127,12 @@ function flashMessage(msg,ms=3000){
 // ---------- Firestore ----------
 async function submitOrderToFirestore(orderData){
   if(!currentUserId){ flashMessage('Auth not ready'); return false; }
-  try{ await addDoc(collection(db,'orders'), {...orderData,userId:currentUserId,timestamp:serverTimestamp()}); flashMessage('Order submitted'); return true; }
-  catch(e){ console.error(e); flashMessage('Order failed'); return false; }
+  try{ 
+    await addDoc(collection(db,'orders'), {...orderData,userId:currentUserId,timestamp:serverTimestamp()}); 
+    // Success message is handled in the form handler now to be specific
+    return true; 
+  }
+  catch(e){ console.error(e); flashMessage('Order failed. Please try again.'); return false; }
 }
 
 async function submitContactToFirestore(contactData){
@@ -150,7 +152,7 @@ function renderNavbar(){
   <nav class="bg-white shadow sticky top-0 z-20">
     <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex-1 flex items-center justify-center gap-3">
-        <img src="./morsecodelogo.png" alt="Morse Jewelry Logo" class="h-16">
+        <img src="./morsecodelogo.png" alt="Morse Jewelry Logo" class="h-24">
         <span class="text-2xl font-bold text-gray-800 tracking-wide">Morse Jewelry</span>
       </div>
       <div class="flex items-center space-x-4">
@@ -207,7 +209,6 @@ function renderGallery(){
   </section>`;
 }
 
-// ---------- Render Cart, Checkout, Contact, Footer ----------
 function renderCart(){
   const items = cartItems();
   const subtotal = cartSubtotal();
@@ -261,7 +262,6 @@ function renderCheckout(){
 
   if(items.length===0) return `<section class="py-12 px-4 max-w-2xl mx-auto text-center"><p class="text-lg">Your cart is empty.</p><div class="mt-4"><button class="px-4 py-2 bg-pink-600 text-white rounded" data-nav="home">Go shopping</button></div></section>`;
   
-  // Point 6: Updated Checkout Fields
   return `
   <section class="py-12 px-4 max-w-2xl mx-auto">
     <h2 class="text-3xl font-bold mb-6">Checkout</h2>
@@ -273,8 +273,8 @@ function renderCheckout(){
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Phone Number</label>
-        <input name="phone1" type="tel" required class="mt-1 block w-full p-2 border rounded" placeholder="01xxxxxxxxx" />
+        <label class="block text-sm font-medium text-gray-700">Phone Number (11 digits)</label>
+        <input name="phone1" type="tel" maxlength="11" required class="mt-1 block w-full p-2 border rounded" placeholder="01xxxxxxxxx" />
       </div>
 
       <div>
@@ -310,15 +310,12 @@ function renderCheckout(){
 }
 
 function renderContact(){
-  // Point 3: Contact Form - Phone instead of Email
   return `
   <section class="py-12 px-4 max-w-xl mx-auto">
     <h2 class="text-3xl font-bold mb-4 text-center">Contact Us</h2>
     <form id="contact-form" class="bg-white p-6 rounded shadow space-y-4">
       <input name="name" placeholder="Name" required class="w-full p-2 border rounded" />
-      
       <input name="phone" type="tel" placeholder="Phone Number" required class="w-full p-2 border rounded" />
-      
       <textarea name="message" placeholder="Message" required class="w-full p-2 border rounded"></textarea>
       <div class="text-center">
         <button type="submit" class="px-6 py-2 bg-pink-600 text-white rounded">Send Message</button>
@@ -329,7 +326,6 @@ function renderContact(){
 }
 
 function renderFooter(){
-  // Point 9: Updated Footer with Social Links
   return `
   <footer class="bg-gray-800 text-white py-8 mt-8">
     <div class="max-w-7xl mx-auto px-4">
@@ -342,19 +338,15 @@ function renderFooter(){
 
         <div class="flex flex-col items-center md:items-end gap-3">
           <p class="font-semibold mb-1">Connect with us:</p>
-          
           <a href="https://wa.me/201281770085" target="_blank" class="flex items-center gap-2 hover:text-green-400 transition">
             <span>WhatsApp: +201281770085</span>
           </a>
-
           <a href="https://www.instagram.com/2annyyy" target="_blank" class="flex items-center gap-2 hover:text-pink-400 transition">
             <span>Instagram: @2annyyy</span>
           </a>
-
           <a href="https://www.tiktok.com/@2annyyy" target="_blank" class="flex items-center gap-2 hover:text-gray-300 transition">
             <span>TikTok: @2annyyy</span>
           </a>
-
           <a href="https://web.facebook.com/profile.php?id=61558403496917" target="_blank" class="flex items-center gap-2 hover:text-blue-400 transition">
             <span>Facebook Page</span>
           </a>
@@ -382,7 +374,7 @@ function render(){
         ${state.page==='checkout'?renderCheckout():''}
       </main>
       ${renderFooter()}
-      ${state.message?`<div id="flash" class="fixed top-6 left-1/2 transform -translate-x-1/2 bg-pink-600 text-white px-6 py-2 rounded shadow">${escapeHtml(state.message)}</div>`:''}
+      ${state.message?`<div id="flash" class="fixed top-6 left-1/2 transform -translate-x-1/2 bg-pink-600 text-white px-6 py-2 rounded shadow z-50 text-center">${escapeHtml(state.message)}</div>`:''}
     </div>
   `;
 
@@ -399,12 +391,18 @@ async function handleCheckoutSubmit(evt){
   evt.preventDefault();
   const form = evt.target;
   
-  // Point 6: Grab new fields
   const name = form.name.value.trim();
   const phone1 = form.phone1.value.trim();
   const phone2 = form.phone2.value.trim();
   const address = form.address.value.trim();
   const customText = form.custom_text.value.trim();
+
+  // VERIFICATION: Check if phone1 is exactly 11 digits
+  const phoneRegex = /^\d{11}$/;
+  if (!phoneRegex.test(phone1)) {
+    flashMessage('Phone number must be exactly 11 digits');
+    return;
+  }
 
   if(!name || !phone1 || !address || !customText){ flashMessage('Please fill all required fields'); return; }
 
@@ -413,22 +411,26 @@ async function handleCheckoutSubmit(evt){
     phone1,
     phone2,
     address,
-    customText, // "Another info (your customize)"
+    customText,
     items: cartItems(),
-    totalPrice: cartTotal(), // Includes Shipping
+    totalPrice: cartTotal(),
     shippingFee: SHIPPING_COST,
     currency: 'EGP'
   };
 
   const success = await submitOrderToFirestore(orderData);
-  if(success){ clearCart(); state.page='home'; render(); }
+  if(success){ 
+    clearCart(); 
+    state.page='home'; 
+    // CUSTOM SUCCESS MESSAGE
+    flashMessage('Your order is placed! We will contact you soon.', 5000); 
+  }
 }
 
 async function handleContactSubmit(evt){
   evt.preventDefault();
   const form = evt.target;
   const name = form.name.value.trim();
-  // Point 3: Use phone instead of email
   const phone = form.phone.value.trim();
   const message = form.message.value.trim();
   
