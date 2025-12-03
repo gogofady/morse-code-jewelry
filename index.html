@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Gleam & Co. | Morse Code Jewelry (Modular Firebase)</title>
+  <title>Morse Jewelry</title>
 
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <link rel="icon" href="./morsecodelogo.png" type="image/png">
@@ -48,15 +47,19 @@ let currentUserId = null;
 const state = {
   page: 'home',
   cart: [],
+  // Points 4 & 5: Updated Prices (Necklace 750, Bracelet 550)
   products: [
-    { id: 1, name: 'Gold Morse Code Necklace', price: 159.99, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
-    { id: 2, name: 'Gold Morse Code Bracelet', price: 99.50, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
-    { id: 3, name: 'Silver Morse Code Necklace', price: 139.00, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
-    { id: 4, name: 'Silver Cord Bracelet Set', price: 89.00, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
+    { id: 1, name: 'Gold Morse Code Necklace', price: 750, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
+    { id: 2, name: 'Gold Morse Code Bracelet', price: 550, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
+    { id: 3, name: 'Silver Morse Code Necklace', price: 750, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
+    { id: 4, name: 'Silver Cord Bracelet Set', price: 550, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
   ],
   message: '',
   isAuthReady: false,
 };
+
+// Point 7: Shipping Fees
+const SHIPPING_COST = 100;
 
 // ---------- Authentication ----------
 async function ensureAnonymousSignIn() {
@@ -107,7 +110,13 @@ function cartItems() {
   }).filter(Boolean);
 }
 
-function cartTotal() { return cartItems().reduce((s,it)=>s+it.subtotal,0); }
+function cartSubtotal() { return cartItems().reduce((s,it)=>s+it.subtotal,0); }
+
+function cartTotal() { 
+  const sub = cartSubtotal();
+  if (sub === 0) return 0;
+  return sub + SHIPPING_COST; 
+}
 
 let flashTimer = null;
 function flashMessage(msg,ms=3000){
@@ -140,8 +149,9 @@ function renderNavbar(){
   return `
   <nav class="bg-white shadow sticky top-0 z-20">
     <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div class="flex-1 flex justify-center">
-        <img src="./morsecodelogo.png" alt="Gleam & Co. Logo" class="h-16">
+      <div class="flex-1 flex items-center justify-center gap-3">
+        <img src="./morsecodelogo.png" alt="Morse Jewelry Logo" class="h-16">
+        <span class="text-2xl font-bold text-gray-800 tracking-wide">Morse Jewelry</span>
       </div>
       <div class="flex items-center space-x-4">
         <button data-nav="home" class="text-sm text-gray-700 hover:text-pink-600">Shop</button>
@@ -161,7 +171,7 @@ function renderNavbar(){
 function renderHome(){
   return `
   <section class="py-12 px-4 max-w-7xl mx-auto">
-    <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-4">Personalized Morse Code Jewelry</h1>
+    <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-4">Morse Jewelry</h1>
     <p class="text-lg text-gray-600 text-center mb-8">Convert any name or secret message into a beautiful, wearable piece.</p>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       ${state.products.map(p=>`
@@ -171,7 +181,7 @@ function renderHome(){
           <h3 class="text-lg font-semibold">${escapeHtml(p.name)}</h3>
           <p class="text-sm text-gray-500 h-12 overflow-hidden">${escapeHtml(p.description)}</p>
           <div class="mt-4 flex items-center justify-between">
-            <strong class="text-pink-600 text-xl">$${p.price.toFixed(2)}</strong>
+            <strong class="text-pink-600 text-xl">${p.price.toFixed(2)} EGP</strong>
             <button data-add-product="${p.id}" class="px-4 py-2 bg-pink-600 text-white rounded-lg">Add to Cart</button>
           </div>
         </div>
@@ -200,7 +210,11 @@ function renderGallery(){
 // ---------- Render Cart, Checkout, Contact, Footer ----------
 function renderCart(){
   const items = cartItems();
+  const subtotal = cartSubtotal();
+  const total = cartTotal();
+
   if(items.length===0) return `<section class="py-12 px-4 max-w-3xl mx-auto text-center"><h2 class="text-2xl font-bold mb-4">Your cart is empty</h2><button class="px-6 py-2 bg-pink-600 text-white rounded" data-nav="home">Shop Now</button></section>`;
+  
   return `
   <section class="py-12 px-4 max-w-4xl mx-auto">
     <h2 class="text-3xl font-bold mb-6">Your Shopping Cart</h2>
@@ -210,18 +224,30 @@ function renderCart(){
         <img src="${escapeHtml(it.image)}" alt="${escapeHtml(it.name)}" class="w-20 h-20 object-cover rounded mr-4" />
         <div class="flex-1">
           <h3 class="font-semibold">${escapeHtml(it.name)}</h3>
-          <p class="text-gray-600">$${it.price.toFixed(2)}</p>
+          <p class="text-gray-600">${it.price.toFixed(2)} EGP</p>
         </div>
         <div class="flex items-center space-x-4">
           <input data-cart-qty="${it.id}" type="number" min="1" value="${it.quantity}" class="w-20 p-2 border rounded" />
-          <span class="text-lg font-bold">$${it.subtotal.toFixed(2)}</span>
+          <span class="text-lg font-bold">${it.subtotal.toFixed(2)} EGP</span>
         </div>
       </div>`).join('')}
     </div>
-    <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between items-center">
-      <h3 class="text-2xl font-bold">Total</h3>
-      <div class="text-3xl font-extrabold text-pink-600">$${cartTotal().toFixed(2)}</div>
+    
+    <div class="mt-8 pt-6 border-t border-gray-200">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-gray-600">Subtotal</span>
+        <span class="font-bold">${subtotal.toFixed(2)} EGP</span>
+      </div>
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-gray-600">Shipping Fees</span>
+        <span class="font-bold">${SHIPPING_COST.toFixed(2)} EGP</span>
+      </div>
+      <div class="flex justify-between items-center text-xl mt-4 border-t pt-4">
+        <h3 class="font-bold">Total</h3>
+        <div class="font-extrabold text-pink-600">${total.toFixed(2)} EGP</div>
+      </div>
     </div>
+
     <div class="mt-6 flex justify-end gap-4">
       <button id="btn-clear-cart" class="px-6 py-3 border rounded">Clear Cart</button>
       <button class="px-6 py-3 bg-pink-600 text-white rounded" data-nav="checkout">Proceed to Checkout</button>
@@ -231,44 +257,68 @@ function renderCart(){
 
 function renderCheckout(){
   const items = cartItems();
+  const total = cartTotal();
+
   if(items.length===0) return `<section class="py-12 px-4 max-w-2xl mx-auto text-center"><p class="text-lg">Your cart is empty.</p><div class="mt-4"><button class="px-4 py-2 bg-pink-600 text-white rounded" data-nav="home">Go shopping</button></div></section>`;
+  
+  // Point 6: Updated Checkout Fields
   return `
   <section class="py-12 px-4 max-w-2xl mx-auto">
     <h2 class="text-3xl font-bold mb-6">Checkout</h2>
     <form id="checkout-form" class="bg-white p-6 rounded shadow space-y-4">
+      
       <div>
-        <label class="block text-sm font-medium text-gray-700">Full name</label>
-        <input name="name" required class="mt-1 block w-full p-2 border rounded" />
+        <label class="block text-sm font-medium text-gray-700">Full Name</label>
+        <input name="name" required class="mt-1 block w-full p-2 border rounded" placeholder="Enter your full name" />
       </div>
+
       <div>
-        <label class="block text-sm font-medium text-gray-700">Shipping address</label>
-        <textarea name="address" required class="mt-1 block w-full p-2 border rounded"></textarea>
+        <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+        <input name="phone1" type="tel" required class="mt-1 block w-full p-2 border rounded" placeholder="01xxxxxxxxx" />
       </div>
+
       <div>
-        <label class="block text-sm font-medium text-gray-700">Card number (simulated)</label>
-        <input name="card" required placeholder="16 digits" pattern="\\d{16}" maxlength="16" class="mt-1 block w-full p-2 border rounded" />
+        <label class="block text-sm font-medium text-gray-700">Another Phone Number (Optional)</label>
+        <input name="phone2" type="tel" class="mt-1 block w-full p-2 border rounded" placeholder="Backup phone number" />
       </div>
+
       <div>
-        <h3 class="font-semibold">Order Summary</h3>
+        <label class="block text-sm font-medium text-gray-700">Shipping Address</label>
+        <textarea name="address" required class="mt-1 block w-full p-2 border rounded" placeholder="Detailed address"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Additional Info (Your Customization)</label>
+        <p class="text-xs text-gray-500 mb-1">What letters or name do you want on your bracelet/necklace?</p>
+        <textarea name="custom_text" required class="mt-1 block w-full p-2 border rounded" placeholder="Example: I want the name 'ANNA' in morse code..."></textarea>
+      </div>
+
+      <div>
+        <h3 class="font-semibold border-t pt-4 mt-4">Order Summary</h3>
         <ul class="mt-2 space-y-1 text-gray-700">
-          ${items.map(it=>`<li>${escapeHtml(it.name)} x ${it.quantity} — $${it.subtotal.toFixed(2)}</li>`).join('')}
+          ${items.map(it=>`<li>${escapeHtml(it.name)} x ${it.quantity} — ${it.subtotal.toFixed(2)} EGP</li>`).join('')}
         </ul>
-        <div class="mt-2 text-right font-bold">Total: $${cartTotal().toFixed(2)}</div>
+        <div class="mt-2 text-sm text-gray-600">Shipping: ${SHIPPING_COST.toFixed(2)} EGP</div>
+        <div class="mt-2 text-right font-bold text-xl">Total: ${total.toFixed(2)} EGP</div>
       </div>
+
       <div class="flex justify-end">
-        <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded">Pay $${cartTotal().toFixed(2)}</button>
+        <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded font-bold">Place Order (${total.toFixed(2)} EGP)</button>
       </div>
     </form>
   </section>`;
 }
 
 function renderContact(){
+  // Point 3: Contact Form - Phone instead of Email
   return `
   <section class="py-12 px-4 max-w-xl mx-auto">
     <h2 class="text-3xl font-bold mb-4 text-center">Contact Us</h2>
     <form id="contact-form" class="bg-white p-6 rounded shadow space-y-4">
       <input name="name" placeholder="Name" required class="w-full p-2 border rounded" />
-      <input name="email" type="email" placeholder="Email" required class="w-full p-2 border rounded" />
+      
+      <input name="phone" type="tel" placeholder="Phone Number" required class="w-full p-2 border rounded" />
+      
       <textarea name="message" placeholder="Message" required class="w-full p-2 border rounded"></textarea>
       <div class="text-center">
         <button type="submit" class="px-6 py-2 bg-pink-600 text-white rounded">Send Message</button>
@@ -279,11 +329,39 @@ function renderContact(){
 }
 
 function renderFooter(){
+  // Point 9: Updated Footer with Social Links
   return `
-  <footer class="bg-gray-800 text-white py-6 mt-8">
-    <div class="max-w-7xl mx-auto px-4 text-center">
-      <div>&copy; ${new Date().getFullYear()} Gleam & Co.</div>
-      <div class="text-xs text-gray-300 mt-1">Database status: ${state.isAuthReady?'Connected (Firestore)':'Initializing...'}</div>
+  <footer class="bg-gray-800 text-white py-8 mt-8">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+        
+        <div class="text-center md:text-left">
+          <h4 class="text-xl font-bold">Morse Jewelry</h4>
+          <div class="text-sm text-gray-400 mt-1">&copy; ${new Date().getFullYear()} All rights reserved.</div>
+        </div>
+
+        <div class="flex flex-col items-center md:items-end gap-3">
+          <p class="font-semibold mb-1">Connect with us:</p>
+          
+          <a href="https://wa.me/201281770085" target="_blank" class="flex items-center gap-2 hover:text-green-400 transition">
+            <span>WhatsApp: +201281770085</span>
+          </a>
+
+          <a href="https://www.instagram.com/2annyyy" target="_blank" class="flex items-center gap-2 hover:text-pink-400 transition">
+            <span>Instagram: @2annyyy</span>
+          </a>
+
+          <a href="https://www.tiktok.com/@2annyyy" target="_blank" class="flex items-center gap-2 hover:text-gray-300 transition">
+            <span>TikTok: @2annyyy</span>
+          </a>
+
+          <a href="https://web.facebook.com/profile.php?id=61558403496917" target="_blank" class="flex items-center gap-2 hover:text-blue-400 transition">
+            <span>Facebook Page</span>
+          </a>
+        </div>
+
+      </div>
+      <div class="text-xs text-gray-500 mt-6 text-center border-t border-gray-700 pt-4">Database status: ${state.isAuthReady?'Connected (Firestore)':'Initializing...'}</div>
     </div>
   </footer>`;
 }
@@ -320,12 +398,28 @@ function render(){
 async function handleCheckoutSubmit(evt){
   evt.preventDefault();
   const form = evt.target;
-  const name=form.name.value.trim();
-  const address=form.address.value.trim();
-  const card=form.card.value.trim();
-  if(!name||!address||!card){ flashMessage('Please fill all fields'); return; }
+  
+  // Point 6: Grab new fields
+  const name = form.name.value.trim();
+  const phone1 = form.phone1.value.trim();
+  const phone2 = form.phone2.value.trim();
+  const address = form.address.value.trim();
+  const customText = form.custom_text.value.trim();
 
-  const orderData = {name,address,card,items:cartItems()};
+  if(!name || !phone1 || !address || !customText){ flashMessage('Please fill all required fields'); return; }
+
+  const orderData = {
+    name,
+    phone1,
+    phone2,
+    address,
+    customText, // "Another info (your customize)"
+    items: cartItems(),
+    totalPrice: cartTotal(), // Includes Shipping
+    shippingFee: SHIPPING_COST,
+    currency: 'EGP'
+  };
+
   const success = await submitOrderToFirestore(orderData);
   if(success){ clearCart(); state.page='home'; render(); }
 }
@@ -333,12 +427,14 @@ async function handleCheckoutSubmit(evt){
 async function handleContactSubmit(evt){
   evt.preventDefault();
   const form = evt.target;
-  const name=form.name.value.trim();
-  const email=form.email.value.trim();
-  const message=form.message.value.trim();
-  if(!name||!email||!message){ flashMessage('Please fill all fields'); return; }
+  const name = form.name.value.trim();
+  // Point 3: Use phone instead of email
+  const phone = form.phone.value.trim();
+  const message = form.message.value.trim();
+  
+  if(!name || !phone || !message){ flashMessage('Please fill all fields'); return; }
 
-  const contactData = {name,email,message};
+  const contactData = { name, phone, message };
   const success = await submitContactToFirestore(contactData);
   if(success){ form.reset(); }
 }
