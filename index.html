@@ -63,7 +63,7 @@ const translations = {
     hero_sub: "Beautiful jewelry with a hidden meaning.",
     collection: "Our Collection",
     add_cart: "Add to Cart",
-    original_price: "EGP", // Just the currency if needed
+    original_price: "EGP", 
     morse_title: "What is Morse Code?",
     morse_desc_1: "Morse code encodes text characters as sequences of dots (.) and dashes (-).",
     morse_desc_2: "We use Round Beads for Dots and Long Beads for Dashes.",
@@ -140,7 +140,7 @@ const translations = {
 
 let currentUserId = null;
 const state = {
-  lang: 'en', // 'en' or 'ar'
+  lang: 'en',
   page: 'home',
   cart: [],
   selectedProductId: null, 
@@ -157,17 +157,13 @@ const state = {
 
 const SHIPPING_COST = 100;
 
-// Helper to get text
 function t(key) {
   return translations[state.lang][key] || key;
 }
 
-// Toggle Language
 function toggleLang() {
   state.lang = state.lang === 'en' ? 'ar' : 'en';
-  // Set HTML direction for correct layout flipping
   document.body.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
-  // Add Arabic font class if Arabic
   if(state.lang === 'ar') document.body.classList.add('font-arabic');
   else document.body.classList.remove('font-arabic');
   render();
@@ -271,26 +267,17 @@ function renderNavbar(){
   const cartCount = state.cart.reduce((s,i)=>s+i.quantity,0);
   const langLabel = state.lang === 'en' ? '🌐 AR' : '🌐 EN';
   
-  // FIXED: Mobile Friendly Navbar (Compact Row)
   return `
   <nav class="bg-white shadow sticky top-0 z-20">
     <div class="max-w-7xl mx-auto px-4 py-2 md:py-4 flex items-center justify-between">
-      
       <div class="flex items-center gap-2 md:gap-3">
         <img src="./morsecodelogo.png" alt="Logo" class="h-10 md:h-20 w-auto object-contain">
-        
         <span class="text-lg md:text-2xl font-bold text-gray-800 tracking-wide hidden sm:block">${t('title')}</span>
       </div>
-
       <div class="flex items-center gap-3 md:gap-6">
-        
         <button data-nav="home" class="text-xs md:text-base font-medium text-gray-700 hover:text-pink-600 uppercase md:normal-case">${t('shop')}</button>
         <button data-nav="gallery" class="text-xs md:text-base font-medium text-gray-700 hover:text-pink-600 hidden md:block">${t('gallery')}</button>
-        
-        <button onclick="window._app.toggleLang()" class="px-2 py-1 border rounded text-xs md:text-sm hover:bg-gray-100 font-bold text-pink-600">
-          ${langLabel}
-        </button>
-
+        <button onclick="window._app.toggleLang()" class="px-2 py-1 border rounded text-xs md:text-sm hover:bg-gray-100 font-bold text-pink-600">${langLabel}</button>
         <button data-nav="cart" class="relative p-1 md:p-2 text-gray-700 hover:text-pink-600">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 md:h-7 md:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
@@ -298,15 +285,31 @@ function renderNavbar(){
           ${cartCount ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] md:text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">${cartCount}</span>` : ''}
         </button>
       </div>
-
     </div>
   </nav>`;
 }
 
 function renderHome(){
-  // PICTURES FIRST: Products are now immediately below the small hero text
+  // CHANGED ORDER: 
+  // 1. Morse Code Info (Top)
+  // 2. Hero Title (Middle)
+  // 3. Products (Bottom)
+  
   return `
   <section class="py-6 px-4 max-w-7xl mx-auto">
+    
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-12 mb-12 flex flex-col md:flex-row items-center gap-8">
+        <div class="flex-1 w-full">
+            <img src="./morsecode.webp" alt="Morse Code" class="w-full rounded-xl shadow-md object-cover">
+        </div>
+        <div class="flex-1 space-y-4">
+            <h2 class="text-2xl font-bold text-gray-800">${t('morse_title')}</h2>
+            <p class="text-gray-600 leading-relaxed">${t('morse_desc_1')}</p>
+            <p class="text-gray-600 leading-relaxed">${t('morse_desc_2')}</p>
+            <p class="text-pink-600 font-medium italic">${t('morse_secret')}</p>
+        </div>
+    </div>
+
     <div class="text-center mb-8">
         <h1 class="text-2xl md:text-4xl font-extrabold text-gray-900 mb-2">${t('hero_title')}</h1>
         <p class="text-sm md:text-lg text-gray-600">${t('hero_sub')}</p>
@@ -331,22 +334,6 @@ function renderHome(){
         </div>
       </article>`).join('')}
     </div>
-
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-12 flex flex-col md:flex-row items-center gap-8">
-        <div class="flex-1 space-y-4">
-            <h2 class="text-2xl font-bold text-gray-800">${t('morse_title')}</h2>
-            <p class="text-gray-600 leading-relaxed">
-                ${t('morse_desc_1')}
-            </p>
-            <p class="text-gray-600 leading-relaxed">
-                ${t('morse_desc_2')}
-            </p>
-            <p class="text-pink-600 font-medium italic">${t('morse_secret')}</p>
-        </div>
-        <div class="flex-1 w-full">
-            <img src="./morsecode.webp" alt="Morse Code" class="w-full rounded-xl shadow-md object-cover">
-        </div>
-    </div>
   </section>`;
 }
 
@@ -357,7 +344,6 @@ function renderProductDetail() {
   return `
   <section class="py-8 px-4 max-w-7xl mx-auto">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      
       <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
         <div class="mb-6">
           <button data-nav="home" class="text-gray-500 hover:text-pink-600 mb-4 inline-flex items-center gap-1">
@@ -367,18 +353,14 @@ function renderProductDetail() {
         </div>
         <h1 class="text-3xl font-extrabold text-gray-900 mb-2">${escapeHtml(mainProduct.name)}</h1>
         <p class="text-gray-600 mb-6 text-lg leading-relaxed">${escapeHtml(mainProduct.description)}</p>
-        
         <div class="flex flex-col sm:flex-row items-center justify-between border-t pt-6 gap-4">
           <div>
             <span class="text-xl text-gray-400 line-through mr-2">${mainProduct.originalPrice} ${t('original_price')}</span>
             <span class="text-4xl font-extrabold text-pink-600">${mainProduct.price.toFixed(2)} ${t('original_price')}</span>
           </div>
-          <button onclick="window._app.addToCart(${mainProduct.id})" class="w-full sm:w-auto px-8 py-4 bg-pink-600 text-white text-lg font-bold rounded-lg shadow hover:bg-pink-700 transform transition hover:scale-105">
-            ${t('add_cart')}
-          </button>
+          <button onclick="window._app.addToCart(${mainProduct.id})" class="w-full sm:w-auto px-8 py-4 bg-pink-600 text-white text-lg font-bold rounded-lg shadow hover:bg-pink-700 transform transition hover:scale-105">${t('add_cart')}</button>
         </div>
       </div>
-
       <div class="lg:col-span-1">
         <h3 class="text-xl font-bold mb-4 text-gray-800">${t('you_like')}</h3>
         <div class="space-y-4">
@@ -387,18 +369,14 @@ function renderProductDetail() {
               <img src="${escapeHtml(p.image)}" class="w-20 h-20 object-cover rounded" alt="${escapeHtml(p.name)}">
               <div>
                 <h4 class="font-semibold text-gray-800 text-sm">${escapeHtml(p.name)}</h4>
-                <div class="mt-1">
-                  <span class="text-sm font-bold text-pink-600">${p.price} ${t('original_price')}</span>
-                </div>
+                <div class="mt-1"><span class="text-sm font-bold text-pink-600">${p.price} ${t('original_price')}</span></div>
               </div>
             </div>
           `).join('')}
         </div>
       </div>
-
     </div>
-  </section>
-  `;
+  </section>`;
 }
 
 function renderGallery(){
@@ -477,41 +455,13 @@ function renderCheckout(){
   <section class="py-12 px-4 max-w-2xl mx-auto">
     <h2 class="text-3xl font-bold mb-6">${t('checkout_title')}</h2>
     <form id="checkout-form" class="bg-white p-6 rounded shadow space-y-4">
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">${t('full_name')}</label>
-        <input name="name" required class="mt-1 block w-full p-2 border rounded" />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">${t('phone_1')}</label>
-        <input name="phone1" type="tel" maxlength="11" required class="mt-1 block w-full p-2 border rounded" placeholder="01xxxxxxxxx" />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">${t('phone_2')}</label>
-        <input name="phone2" type="tel" class="mt-1 block w-full p-2 border rounded" />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">${t('address')}</label>
-        <textarea name="address" required class="mt-1 block w-full p-2 border rounded"></textarea>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">${t('custom_info')}</label>
-        <p class="text-xs text-gray-500 mb-1">${t('custom_hint')}</p>
-        <textarea name="custom_text" required class="mt-1 block w-full p-2 border rounded"></textarea>
-      </div>
-
-      <div>
-        <h3 class="font-semibold border-t pt-4 mt-4">${t('total')}</h3>
-        <div class="mt-2 text-right font-bold text-xl">${total.toFixed(2)} ${t('original_price')}</div>
-      </div>
-
-      <div class="flex justify-end">
-        <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded font-bold hover:bg-green-700">${t('place_order')}</button>
-      </div>
+      <div><label class="block text-sm font-medium text-gray-700">${t('full_name')}</label><input name="name" required class="mt-1 block w-full p-2 border rounded" /></div>
+      <div><label class="block text-sm font-medium text-gray-700">${t('phone_1')}</label><input name="phone1" type="tel" maxlength="11" required class="mt-1 block w-full p-2 border rounded" placeholder="01xxxxxxxxx" /></div>
+      <div><label class="block text-sm font-medium text-gray-700">${t('phone_2')}</label><input name="phone2" type="tel" class="mt-1 block w-full p-2 border rounded" /></div>
+      <div><label class="block text-sm font-medium text-gray-700">${t('address')}</label><textarea name="address" required class="mt-1 block w-full p-2 border rounded"></textarea></div>
+      <div><label class="block text-sm font-medium text-gray-700">${t('custom_info')}</label><p class="text-xs text-gray-500 mb-1">${t('custom_hint')}</p><textarea name="custom_text" required class="mt-1 block w-full p-2 border rounded"></textarea></div>
+      <div><h3 class="font-semibold border-t pt-4 mt-4">${t('total')}</h3><div class="mt-2 text-right font-bold text-xl">${total.toFixed(2)} ${t('original_price')}</div></div>
+      <div class="flex justify-end"><button type="submit" class="px-6 py-2 bg-green-600 text-white rounded font-bold hover:bg-green-700">${t('place_order')}</button></div>
     </form>
   </section>`;
 }
@@ -524,9 +474,7 @@ function renderContact(){
       <input name="name" placeholder="${t('full_name')}" required class="w-full p-2 border rounded" />
       <input name="phone" type="tel" placeholder="${t('phone_1')}" required class="w-full p-2 border rounded" />
       <textarea name="message" placeholder="Message..." required class="w-full p-2 border rounded"></textarea>
-      <div class="text-center">
-        <button type="submit" class="px-6 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">${t('send_msg')}</button>
-      </div>
+      <div class="text-center"><button type="submit" class="px-6 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">${t('send_msg')}</button></div>
       <p class="text-xs text-gray-500 mt-2 text-center">User ID: ${currentUserId?escapeHtml(currentUserId):'...'}</p>
     </form>
   </section>`;
@@ -553,7 +501,6 @@ function renderFooter(){
   </footer>`;
 }
 
-// ---------- Render ----------
 function render(){
   const readyClass = state.isAuthReady?'visible-ready':'hidden-until-ready';
   root.className=readyClass;
@@ -571,14 +518,9 @@ function render(){
   root.innerHTML=`
     <div class="min-h-screen flex flex-col">
       ${renderNavbar()}
-      <main class="flex-1 bg-gray-50">
-        ${content}
-      </main>
+      <main class="flex-1 bg-gray-50">${content}</main>
       ${renderFooter()}
-      ${state.message ? `
-        <div id="flash" class="flash-slide-in fixed top-6 left-1/2 transform -translate-x-1/2 ${flashColorClass} text-white px-8 py-3 rounded-full shadow-lg z-50 text-center font-medium">
-          ${escapeHtml(state.message)}
-        </div>` : ''}
+      ${state.message ? `<div id="flash" class="flash-slide-in fixed top-6 left-1/2 transform -translate-x-1/2 ${flashColorClass} text-white px-8 py-3 rounded-full shadow-lg z-50 text-center font-medium">${escapeHtml(state.message)}</div>` : ''}
     </div>
   `;
 
@@ -586,19 +528,12 @@ function render(){
   const clearBtn = document.getElementById('btn-clear-cart'); if(clearBtn) clearBtn.onclick=clearCart;
   const checkoutForm = document.getElementById('checkout-form'); if(checkoutForm) checkoutForm.onsubmit=handleCheckoutSubmit;
   const contactForm = document.getElementById('contact-form'); if(contactForm) contactForm.onsubmit=handleContactSubmit;
-  
-  document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ 
-    const id=Number(input.getAttribute('data-cart-qty')); 
-    const value=parseInt(input.value)||0; 
-    updateQuantity(id,value); 
-  });
+  document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ const id=Number(input.getAttribute('data-cart-qty')); const value=parseInt(input.value)||0; updateQuantity(id,value); });
 }
 
-// ---------- Form Handlers ----------
 async function handleCheckoutSubmit(evt){
   evt.preventDefault();
   const form = evt.target;
-  
   const name = form.name.value.trim();
   const phone1 = form.phone1.value.trim();
   const phone2 = form.phone2.value.trim();
@@ -606,27 +541,12 @@ async function handleCheckoutSubmit(evt){
   const customText = form.custom_text.value.trim();
 
   const phoneRegex = /^\d{11}$/;
-  if (!phoneRegex.test(phone1)) {
-    flashMessage(t('phone_error'), 'error');
-    return;
-  }
-
+  if (!phoneRegex.test(phone1)) { flashMessage(t('phone_error'), 'error'); return; }
   if(!name || !phone1 || !address || !customText){ flashMessage(t('fill_fields'), 'error'); return; }
 
-  const orderData = {
-    name, phone1, phone2, address, customText,
-    items: cartItems(),
-    totalPrice: cartTotal(),
-    shippingFee: SHIPPING_COST,
-    currency: 'EGP'
-  };
-
+  const orderData = { name, phone1, phone2, address, customText, items: cartItems(), totalPrice: cartTotal(), shippingFee: SHIPPING_COST, currency: 'EGP' };
   const success = await submitOrderToFirestore(orderData);
-  if(success){ 
-    clearCart(); 
-    state.page='home'; 
-    flashMessage(t('order_success'), 'success', 5000); 
-  }
+  if(success){ clearCart(); state.page='home'; flashMessage(t('order_success'), 'success', 5000); }
 }
 
 async function handleContactSubmit(evt){
@@ -635,16 +555,13 @@ async function handleContactSubmit(evt){
   const name = form.name.value.trim();
   const phone = form.phone.value.trim();
   const message = form.message.value.trim();
-  
   if(!name || !phone || !message){ flashMessage(t('fill_fields'), 'error'); return; }
-
   const contactData = { name, phone, message };
   const success = await submitContactToFirestore(contactData);
   if(success){ form.reset(); }
 }
 
 window._app={state, addToCart, viewProduct, updateQuantity, clearCart, cartItems, cartTotal, toggleLang};
-
 render();
 </script>
 </body>
