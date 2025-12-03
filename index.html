@@ -13,6 +13,9 @@
     body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
     .hidden-until-ready { opacity: 0; transition: opacity .25s ease-in; }
     .visible-ready { opacity: 1; }
+    /* Animation for flash messages */
+    .flash-slide-in { animation: slideIn 0.5s ease-out forwards; }
+    @keyframes slideIn { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -36,7 +39,6 @@ const firebaseConfig = {
   measurementId: "G-C4WH6X1N1Z"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 try { getAnalytics(app); } catch(e) { console.info("Analytics init skipped:", e?.message || e); }
 
@@ -47,13 +49,16 @@ let currentUserId = null;
 const state = {
   page: 'home',
   cart: [],
+  selectedProductId: null, // Track which product is being viewed
+  // Updated Products with Original Prices for Discount Display
   products: [
-    { id: 1, name: 'Gold Morse Code Necklace', price: 750, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
-    { id: 2, name: 'Gold Morse Code Bracelet', price: 550, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
-    { id: 3, name: 'Silver Morse Code Necklace', price: 750, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
-    { id: 4, name: 'Silver Cord Bracelet Set', price: 550, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
+    { id: 1, name: 'Gold Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
+    { id: 2, name: 'Gold Morse Code Bracelet', price: 550, originalPrice: 900, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
+    { id: 3, name: 'Silver Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
+    { id: 4, name: 'Silver Cord Bracelet Set', price: 550, originalPrice: 900, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
   ],
   message: '',
+  messageType: 'success', // 'success' (green) or 'error' (red)
   isAuthReady: false,
 };
 
@@ -88,7 +93,7 @@ function addToCart(productId) {
   const existing = state.cart.find(i => i.productId === productId);
   if(existing) existing.quantity++;
   else state.cart.push({productId, quantity:1});
-  flashMessage('Added to cart');
+  flashMessage('Added to cart successfully', 'success');
   render();
 }
 
@@ -98,7 +103,7 @@ function updateQuantity(productId, qty){
   render();
 }
 
-function clearCart() { state.cart=[]; flashMessage('Cart cleared'); render(); }
+function clearCart() { state.cart=[]; flashMessage('Cart cleared', 'success'); render(); }
 
 function cartItems() {
   return state.cart.map(ci=>{
@@ -116,29 +121,38 @@ function cartTotal() {
   return sub + SHIPPING_COST; 
 }
 
+// Updated Flash Message System (Green/Red)
 let flashTimer = null;
-function flashMessage(msg,ms=3000){
-  state.message=msg;
+function flashMessage(msg, type='success', ms=3000){
+  state.message = msg;
+  state.messageType = type; // 'success' or 'error'
   render();
   if(flashTimer) clearTimeout(flashTimer);
   flashTimer=setTimeout(()=>{state.message=''; render();}, ms);
 }
 
+// Navigation Helper
+function viewProduct(id) {
+  state.selectedProductId = Number(id);
+  state.page = 'product_detail';
+  render();
+  window.scrollTo(0,0);
+}
+
 // ---------- Firestore ----------
 async function submitOrderToFirestore(orderData){
-  if(!currentUserId){ flashMessage('Auth not ready'); return false; }
+  if(!currentUserId){ flashMessage('Auth not ready', 'error'); return false; }
   try{ 
     await addDoc(collection(db,'orders'), {...orderData,userId:currentUserId,timestamp:serverTimestamp()}); 
-    // Success message is handled in the form handler now to be specific
     return true; 
   }
-  catch(e){ console.error(e); flashMessage('Order failed. Please try again.'); return false; }
+  catch(e){ console.error(e); flashMessage('Order failed. Please try again.', 'error'); return false; }
 }
 
 async function submitContactToFirestore(contactData){
-  if(!currentUserId){ flashMessage('Auth not ready'); return false; }
-  try{ await addDoc(collection(db,'contact_messages'), {...contactData,userId:currentUserId,timestamp:serverTimestamp()}); flashMessage('Message sent'); return true; }
-  catch(e){ console.error(e); flashMessage('Message failed'); return false; }
+  if(!currentUserId){ flashMessage('Auth not ready', 'error'); return false; }
+  try{ await addDoc(collection(db,'contact_messages'), {...contactData,userId:currentUserId,timestamp:serverTimestamp()}); flashMessage('Message sent successfully', 'success'); return true; }
+  catch(e){ console.error(e); flashMessage('Message failed to send', 'error'); return false; }
 }
 
 // ---------- DOM ----------
@@ -177,14 +191,17 @@ function renderHome(){
     <p class="text-lg text-gray-600 text-center mb-8">Convert any name or secret message into a beautiful, wearable piece.</p>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       ${state.products.map(p=>`
-      <article class="bg-white rounded-xl shadow-sm overflow-hidden">
+      <article class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col cursor-pointer transition hover:shadow-lg" onclick="window._app.viewProduct(${p.id})">
         <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-48 object-cover" />
-        <div class="p-4">
+        <div class="p-4 flex flex-col flex-1">
           <h3 class="text-lg font-semibold">${escapeHtml(p.name)}</h3>
           <p class="text-sm text-gray-500 h-12 overflow-hidden">${escapeHtml(p.description)}</p>
-          <div class="mt-4 flex items-center justify-between">
-            <strong class="text-pink-600 text-xl">${p.price.toFixed(2)} EGP</strong>
-            <button data-add-product="${p.id}" class="px-4 py-2 bg-pink-600 text-white rounded-lg">Add to Cart</button>
+          <div class="mt-auto pt-4 flex items-center justify-between">
+            <div>
+              <span class="text-gray-400 line-through text-sm block">${p.originalPrice} EGP</span>
+              <strong class="text-pink-600 text-xl">${p.price.toFixed(2)} EGP</strong>
+            </div>
+            <button onclick="event.stopPropagation(); window._app.addToCart(${p.id})" class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700">Add</button>
           </div>
         </div>
       </article>`).join('')}
@@ -192,19 +209,73 @@ function renderHome(){
   </section>`;
 }
 
+// New View: Product Detail (Main Left, Others Right)
+function renderProductDetail() {
+  const mainProduct = findProduct(state.selectedProductId) || state.products[0];
+  const otherProducts = state.products.filter(p => p.id !== mainProduct.id);
+
+  return `
+  <section class="py-12 px-4 max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+        <div class="mb-6">
+          <button data-nav="home" class="text-gray-500 hover:text-pink-600 mb-4">&larr; Back to Shop</button>
+          <img src="${escapeHtml(mainProduct.image)}" alt="${escapeHtml(mainProduct.name)}" class="w-full h-96 object-cover rounded-lg shadow-sm">
+        </div>
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-2">${escapeHtml(mainProduct.name)}</h1>
+        <p class="text-gray-600 mb-6 text-lg leading-relaxed">${escapeHtml(mainProduct.description)}</p>
+        
+        <div class="flex items-center justify-between border-t pt-6">
+          <div>
+            <span class="text-xl text-gray-400 line-through mr-2">${mainProduct.originalPrice} EGP</span>
+            <span class="text-4xl font-extrabold text-pink-600">${mainProduct.price.toFixed(2)} EGP</span>
+          </div>
+          <button onclick="window._app.addToCart(${mainProduct.id})" class="px-8 py-4 bg-pink-600 text-white text-lg font-bold rounded-lg shadow hover:bg-pink-700 transform transition hover:scale-105">
+            Add to Cart
+          </button>
+        </div>
+      </div>
+
+      <div class="lg:col-span-1">
+        <h3 class="text-xl font-bold mb-4 text-gray-800">You might also like</h3>
+        <div class="space-y-4">
+          ${otherProducts.map(p => `
+            <div class="bg-white rounded-lg shadow p-3 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition border border-transparent hover:border-pink-200" onclick="window._app.viewProduct(${p.id})">
+              <img src="${escapeHtml(p.image)}" class="w-20 h-20 object-cover rounded" alt="${escapeHtml(p.name)}">
+              <div>
+                <h4 class="font-semibold text-gray-800 text-sm">${escapeHtml(p.name)}</h4>
+                <div class="mt-1">
+                  <span class="text-xs text-gray-400 line-through mr-1">${p.originalPrice}</span>
+                  <span class="text-sm font-bold text-pink-600">${p.price} EGP</span>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+    </div>
+  </section>
+  `;
+}
+
 function renderGallery(){
   return `
   <section class="py-12 px-4 max-w-7xl mx-auto">
     <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-4">Customer Spotlight Gallery</h1>
+    <p class="text-center text-gray-500 mb-8">Click on any photo to shop the look!</p>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       ${state.products.map(p=>`
-      <div class="bg-white rounded-xl shadow overflow-hidden">
-        <div class="aspect-[1/1]"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-full object-cover" /></div>
-        <div class="p-4 text-center"><p class="text-sm font-medium">${escapeHtml(p.name)}</p></div>
+      <div class="bg-white rounded-xl shadow overflow-hidden group cursor-pointer relative" onclick="window._app.viewProduct(${p.id})">
+        <div class="aspect-[1/1] overflow-hidden">
+          <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110" />
+        </div>
+        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition flex items-center justify-center">
+          <span class="opacity-0 group-hover:opacity-100 bg-white text-pink-600 px-4 py-2 rounded-full font-bold shadow-lg transform translate-y-4 group-hover:translate-y-0 transition">Shop Now</span>
+        </div>
+        <div class="p-4 text-center bg-white relative z-10"><p class="text-sm font-medium">${escapeHtml(p.name)}</p></div>
       </div>`).join('')}
-    </div>
-    <div class="text-center mt-12">
-      <button class="px-8 py-3 bg-pink-600 text-white rounded-lg" data-nav="home">Start Customizing Now</button>
     </div>
   </section>`;
 }
@@ -303,7 +374,7 @@ function renderCheckout(){
       </div>
 
       <div class="flex justify-end">
-        <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded font-bold">Place Order (${total.toFixed(2)} EGP)</button>
+        <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded font-bold hover:bg-green-700">Place Order (${total.toFixed(2)} EGP)</button>
       </div>
     </form>
   </section>`;
@@ -318,7 +389,7 @@ function renderContact(){
       <input name="phone" type="tel" placeholder="Phone Number" required class="w-full p-2 border rounded" />
       <textarea name="message" placeholder="Message" required class="w-full p-2 border rounded"></textarea>
       <div class="text-center">
-        <button type="submit" class="px-6 py-2 bg-pink-600 text-white rounded">Send Message</button>
+        <button type="submit" class="px-6 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">Send Message</button>
       </div>
       <p class="text-xs text-gray-500 mt-2 text-center">Current User ID: ${currentUserId?escapeHtml(currentUserId):'Authenticating...'}</p>
     </form>
@@ -330,28 +401,17 @@ function renderFooter(){
   <footer class="bg-gray-800 text-white py-8 mt-8">
     <div class="max-w-7xl mx-auto px-4">
       <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-        
         <div class="text-center md:text-left">
           <h4 class="text-xl font-bold">Morse Jewelry</h4>
           <div class="text-sm text-gray-400 mt-1">&copy; ${new Date().getFullYear()} All rights reserved.</div>
         </div>
-
         <div class="flex flex-col items-center md:items-end gap-3">
           <p class="font-semibold mb-1">Connect with us:</p>
-          <a href="https://wa.me/201281770085" target="_blank" class="flex items-center gap-2 hover:text-green-400 transition">
-            <span>WhatsApp: +201281770085</span>
-          </a>
-          <a href="https://www.instagram.com/2annyyy" target="_blank" class="flex items-center gap-2 hover:text-pink-400 transition">
-            <span>Instagram: @2annyyy</span>
-          </a>
-          <a href="https://www.tiktok.com/@2annyyy" target="_blank" class="flex items-center gap-2 hover:text-gray-300 transition">
-            <span>TikTok: @2annyyy</span>
-          </a>
-          <a href="https://web.facebook.com/profile.php?id=61558403496917" target="_blank" class="flex items-center gap-2 hover:text-blue-400 transition">
-            <span>Facebook Page</span>
-          </a>
+          <a href="https://wa.me/201281770085" target="_blank" class="flex items-center gap-2 hover:text-green-400 transition"><span>WhatsApp: +201281770085</span></a>
+          <a href="https://www.instagram.com/2annyyy" target="_blank" class="flex items-center gap-2 hover:text-pink-400 transition"><span>Instagram: @2annyyy</span></a>
+          <a href="https://www.tiktok.com/@2annyyy" target="_blank" class="flex items-center gap-2 hover:text-gray-300 transition"><span>TikTok: @2annyyy</span></a>
+          <a href="https://web.facebook.com/profile.php?id=61558403496917" target="_blank" class="flex items-center gap-2 hover:text-blue-400 transition"><span>Facebook Page</span></a>
         </div>
-
       </div>
       <div class="text-xs text-gray-500 mt-6 text-center border-t border-gray-700 pt-4">Database status: ${state.isAuthReady?'Connected (Firestore)':'Initializing...'}</div>
     </div>
@@ -363,27 +423,43 @@ function render(){
   const readyClass = state.isAuthReady?'visible-ready':'hidden-until-ready';
   root.className=readyClass;
 
+  // Choose content based on page state
+  let content = '';
+  if (state.page === 'home') content = renderHome();
+  else if (state.page === 'gallery') content = renderGallery();
+  else if (state.page === 'contact') content = renderContact();
+  else if (state.page === 'cart') content = renderCart();
+  else if (state.page === 'checkout') content = renderCheckout();
+  else if (state.page === 'product_detail') content = renderProductDetail();
+
+  // Color logic for flash message
+  const flashColorClass = state.messageType === 'success' ? 'bg-green-600' : 'bg-red-600';
+
   root.innerHTML=`
     <div class="min-h-screen flex flex-col">
       ${renderNavbar()}
-      <main class="flex-1">
-        ${state.page==='home'?renderHome():''}
-        ${state.page==='gallery'?renderGallery():''}
-        ${state.page==='contact'?renderContact():''}
-        ${state.page==='cart'?renderCart():''}
-        ${state.page==='checkout'?renderCheckout():''}
+      <main class="flex-1 bg-gray-50">
+        ${content}
       </main>
       ${renderFooter()}
-      ${state.message?`<div id="flash" class="fixed top-6 left-1/2 transform -translate-x-1/2 bg-pink-600 text-white px-6 py-2 rounded shadow z-50 text-center">${escapeHtml(state.message)}</div>`:''}
+      ${state.message ? `
+        <div id="flash" class="flash-slide-in fixed top-6 left-1/2 transform -translate-x-1/2 ${flashColorClass} text-white px-8 py-3 rounded-full shadow-lg z-50 text-center font-medium">
+          ${escapeHtml(state.message)}
+        </div>` : ''}
     </div>
   `;
 
   document.querySelectorAll('[data-nav]').forEach(btn=>btn.onclick=()=>{ state.page=btn.getAttribute('data-nav'); render(); window.scrollTo(0,0); });
-  document.querySelectorAll('[data-add-product]').forEach(btn=>btn.onclick=()=>addToCart(Number(btn.getAttribute('data-add-product'))));
-  document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ const id=Number(input.getAttribute('data-cart-qty')); const value=parseInt(input.value)||0; updateQuantity(id,value); });
   const clearBtn = document.getElementById('btn-clear-cart'); if(clearBtn) clearBtn.onclick=clearCart;
   const checkoutForm = document.getElementById('checkout-form'); if(checkoutForm) checkoutForm.onsubmit=handleCheckoutSubmit;
   const contactForm = document.getElementById('contact-form'); if(contactForm) contactForm.onsubmit=handleContactSubmit;
+  
+  // Re-attach listeners for qty inputs if cart is open
+  document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ 
+    const id=Number(input.getAttribute('data-cart-qty')); 
+    const value=parseInt(input.value)||0; 
+    updateQuantity(id,value); 
+  });
 }
 
 // ---------- Form Handlers ----------
@@ -400,18 +476,14 @@ async function handleCheckoutSubmit(evt){
   // VERIFICATION: Check if phone1 is exactly 11 digits
   const phoneRegex = /^\d{11}$/;
   if (!phoneRegex.test(phone1)) {
-    flashMessage('Phone number must be exactly 11 digits');
+    flashMessage('Phone number must be exactly 11 digits', 'error');
     return;
   }
 
-  if(!name || !phone1 || !address || !customText){ flashMessage('Please fill all required fields'); return; }
+  if(!name || !phone1 || !address || !customText){ flashMessage('Please fill all required fields', 'error'); return; }
 
   const orderData = {
-    name,
-    phone1,
-    phone2,
-    address,
-    customText,
+    name, phone1, phone2, address, customText,
     items: cartItems(),
     totalPrice: cartTotal(),
     shippingFee: SHIPPING_COST,
@@ -422,8 +494,7 @@ async function handleCheckoutSubmit(evt){
   if(success){ 
     clearCart(); 
     state.page='home'; 
-    // CUSTOM SUCCESS MESSAGE
-    flashMessage('Your order is placed! We will contact you soon.', 5000); 
+    flashMessage('Your order is placed! We will contact you soon.', 'success', 5000); 
   }
 }
 
@@ -434,17 +505,17 @@ async function handleContactSubmit(evt){
   const phone = form.phone.value.trim();
   const message = form.message.value.trim();
   
-  if(!name || !phone || !message){ flashMessage('Please fill all fields'); return; }
+  if(!name || !phone || !message){ flashMessage('Please fill all fields', 'error'); return; }
 
   const contactData = { name, phone, message };
   const success = await submitContactToFirestore(contactData);
   if(success){ form.reset(); }
 }
 
-// ---------- Initial Render ----------
-render();
-window._app={state,addToCart,updateQuantity,clearCart,cartItems,cartTotal};
+// Expose functions globally so onclick="" works in HTML strings
+window._app={state, addToCart, viewProduct, updateQuantity, clearCart, cartItems, cartTotal};
 
+render();
 </script>
 </body>
 </html>
