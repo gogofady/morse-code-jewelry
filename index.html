@@ -44,11 +44,17 @@ const firebaseConfig = {
   measurementId: "G-C4WH6X1N1Z"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 try { getAnalytics(app); } catch(e) { console.info("Analytics init skipped:", e?.message || e); }
 
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// =================================================================
+// YOUR GOOGLE SHEET CONNECTION
+// =================================================================
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuMlTdvd8sJYjNni9vvFEXsgtk8nLjCNqpbDYyjGmMnBX22EK7l3DT86vGnCtCtQyF/exec";
 
 // ---------- Translations Dictionary ----------
 const translations = {
@@ -140,7 +146,7 @@ const translations = {
 
 let currentUserId = null;
 const state = {
-  lang: 'en',
+  lang: 'en', // 'en' or 'ar'
   page: 'home',
   cart: [],
   selectedProductId: null, 
@@ -157,13 +163,17 @@ const state = {
 
 const SHIPPING_COST = 100;
 
+// Helper to get text based on language
 function t(key) {
   return translations[state.lang][key] || key;
 }
 
+// Toggle Language Function
 function toggleLang() {
   state.lang = state.lang === 'en' ? 'ar' : 'en';
+  // Set HTML direction
   document.body.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
+  // Add Arabic font class if Arabic
   if(state.lang === 'ar') document.body.classList.add('font-arabic');
   else document.body.classList.remove('font-arabic');
   render();
@@ -191,7 +201,7 @@ async function ensureAnonymousSignIn() {
 }
 ensureAnonymousSignIn();
 
-// ---------- Utility ----------
+// ---------- Utility Functions ----------
 function findProduct(id) { return state.products.find(p=>p.id===Number(id)); }
 
 function addToCart(productId) {
@@ -229,7 +239,7 @@ function cartTotal() {
 let flashTimer = null;
 function flashMessage(msg, type='success', ms=3000){
   state.message = msg;
-  state.messageType = type;
+  state.messageType = type; // 'success' or 'error'
   render();
   if(flashTimer) clearTimeout(flashTimer);
   flashTimer=setTimeout(()=>{state.message=''; render();}, ms);
@@ -242,11 +252,23 @@ function viewProduct(id) {
   window.scrollTo(0,0);
 }
 
-// ---------- Firestore ----------
+// ---------- Order Submission (Firestore + Google Sheets) ----------
 async function submitOrderToFirestore(orderData){
   if(!currentUserId){ flashMessage('Auth not ready', 'error'); return false; }
   try{ 
+    // 1. Send to Firebase
     await addDoc(collection(db,'orders'), {...orderData,userId:currentUserId,timestamp:serverTimestamp()}); 
+    
+    // 2. Send to Google Sheets
+    if(GOOGLE_SCRIPT_URL) {
+       fetch(GOOGLE_SCRIPT_URL, {
+         method: "POST",
+         mode: "no-cors",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify(orderData)
+       }).catch(e => console.error("Sheet Error:", e));
+    }
+
     return true; 
   }
   catch(e){ console.error(e); flashMessage('Order failed', 'error'); return false; }
@@ -258,7 +280,7 @@ async function submitContactToFirestore(contactData){
   catch(e){ console.error(e); flashMessage('Failed', 'error'); return false; }
 }
 
-// ---------- DOM ----------
+// ---------- DOM & Escape ----------
 const root = document.getElementById('root');
 function escapeHtml(str){ if(!str) return ''; return String(str).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
 
@@ -267,13 +289,16 @@ function renderNavbar(){
   const cartCount = state.cart.reduce((s,i)=>s+i.quantity,0);
   const langLabel = state.lang === 'en' ? '🌐 AR' : '🌐 EN';
   
+  // Responsive Navbar: Row on desktop, optimized row on mobile
   return `
   <nav class="bg-white shadow sticky top-0 z-20">
     <div class="max-w-7xl mx-auto px-4 py-2 md:py-4 flex items-center justify-between">
+      
       <div class="flex items-center gap-2 md:gap-3">
         <img src="./morsecodelogo.png" alt="Logo" class="h-10 md:h-20 w-auto object-contain">
         <span class="text-lg md:text-2xl font-bold text-gray-800 tracking-wide hidden sm:block">${t('title')}</span>
       </div>
+
       <div class="flex items-center gap-3 md:gap-6">
         <button data-nav="home" class="text-xs md:text-base font-medium text-gray-700 hover:text-pink-600 uppercase md:normal-case">${t('shop')}</button>
         <button data-nav="gallery" class="text-xs md:text-base font-medium text-gray-700 hover:text-pink-600 hidden md:block">${t('gallery')}</button>
@@ -290,11 +315,7 @@ function renderNavbar(){
 }
 
 function renderHome(){
-  // CHANGED ORDER: 
-  // 1. Morse Code Info (Top)
-  // 2. Hero Title (Middle)
-  // 3. Products (Bottom)
-  
+  // Order: 1. Morse Info -> 2. Title -> 3. Products
   return `
   <section class="py-6 px-4 max-w-7xl mx-auto">
     
@@ -344,6 +365,7 @@ function renderProductDetail() {
   return `
   <section class="py-8 px-4 max-w-7xl mx-auto">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
       <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
         <div class="mb-6">
           <button data-nav="home" class="text-gray-500 hover:text-pink-600 mb-4 inline-flex items-center gap-1">
@@ -361,6 +383,7 @@ function renderProductDetail() {
           <button onclick="window._app.addToCart(${mainProduct.id})" class="w-full sm:w-auto px-8 py-4 bg-pink-600 text-white text-lg font-bold rounded-lg shadow hover:bg-pink-700 transform transition hover:scale-105">${t('add_cart')}</button>
         </div>
       </div>
+
       <div class="lg:col-span-1">
         <h3 class="text-xl font-bold mb-4 text-gray-800">${t('you_like')}</h3>
         <div class="space-y-4">
@@ -531,6 +554,7 @@ function render(){
   document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ const id=Number(input.getAttribute('data-cart-qty')); const value=parseInt(input.value)||0; updateQuantity(id,value); });
 }
 
+// ---------- Handlers ----------
 async function handleCheckoutSubmit(evt){
   evt.preventDefault();
   const form = evt.target;
@@ -540,11 +564,13 @@ async function handleCheckoutSubmit(evt){
   const address = form.address.value.trim();
   const customText = form.custom_text.value.trim();
 
+  // Phone Validation
   const phoneRegex = /^\d{11}$/;
   if (!phoneRegex.test(phone1)) { flashMessage(t('phone_error'), 'error'); return; }
   if(!name || !phone1 || !address || !customText){ flashMessage(t('fill_fields'), 'error'); return; }
 
   const orderData = { name, phone1, phone2, address, customText, items: cartItems(), totalPrice: cartTotal(), shippingFee: SHIPPING_COST, currency: 'EGP' };
+  
   const success = await submitOrderToFirestore(orderData);
   if(success){ clearCart(); state.page='home'; flashMessage(t('order_success'), 'success', 5000); }
 }
@@ -561,7 +587,10 @@ async function handleContactSubmit(evt){
   if(success){ form.reset(); }
 }
 
+// Expose to window
 window._app={state, addToCart, viewProduct, updateQuantity, clearCart, cartItems, cartTotal, toggleLang};
+
+// Start
 render();
 </script>
 </body>
