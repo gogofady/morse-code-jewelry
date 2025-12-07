@@ -26,23 +26,6 @@
     /* Arabic Font */
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
     .font-arabic { font-family: 'Cairo', sans-serif; }
-
-    /* Apple Pay Button Style */
-    .apple-pay-button {
-      background-color: black;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-      display: inline-block;
-      width: 100%;
-      height: 44px;
-      line-height: 44px;
-      text-align: center;
-      font-weight: 500;
-      font-size: 16px;
-      transition: background-color 0.2s;
-    }
-    .apple-pay-button:hover { background-color: #333; }
   </style>
 </head>
 <body class="bg-gray-50 transition-all duration-300">
@@ -54,6 +37,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebas
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+// NEW: Import Storage for Image Uploads
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-storage.js";
 
 // ---------- Firebase config ----------
 const firebaseConfig = {
@@ -71,6 +56,7 @@ try { getAnalytics(app); } catch(e) { console.info("Analytics init skipped:", e?
 
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuMlTdvd8sJYjNni9vvFEXsgtk8nLjCNqpbDYyjGmMnBX22EK7l3DT86vGnCtCtQyF/exec";
 
@@ -107,7 +93,6 @@ const translations = {
     your_cart: "Your Shopping Cart",
     subtotal: "Subtotal",
     shipping: "Shipping Fees",
-    cod_fee: "Cash on Delivery Fee",
     shipping_banner: "🚚 Free shipping on orders over 1000 EGP!",
     free: "FREE", 
     total: "Total",
@@ -119,17 +104,20 @@ const translations = {
     phone_2: "Backup Phone (Optional)",
     address_section: "Delivery Address",
     gov_label: "Governorate",
-    district_label: "District / Area",
+    district_label: "Area Name",
     street_label: "Street Name",
     building_label: "Building No.",
-    floor_label: "Floor / Apt No.",
+    floor_label: "Floor No.",
+    apt_label: "Apartment No.",
     custom_title: "Personalize Your Secret Message",
     custom_hint: "Type your name to see the Morse preview:",
     custom_limit: "(Up to 10 characters)",
     payment_section: "Payment Method",
-    pay_card: "Credit / Debit Card",
-    pay_apple: "Apple Pay",
-    pay_cod: "Cash on Delivery (+10 EGP)",
+    pay_instapay: "Instapay",
+    pay_cod: "Cash on Delivery",
+    instapay_instruction: "Please send the total amount to this Instapay number/address:",
+    instapay_number: "01281770085",
+    upload_receipt: "Upload Payment Receipt (Screenshot)",
     place_order: "Place Order",
     contact_us: "Contact Us",
     send_msg: "Send Message",
@@ -171,7 +159,6 @@ const translations = {
     your_cart: "سلة التسوق الخاصة بك",
     subtotal: "المجموع الفرعي",
     shipping: "مصاريف الشحن",
-    cod_fee: "رسوم الدفع عند الاستلام",
     shipping_banner: "🚚 شحن مجاني للطلبات فوق ١٠٠٠ ج.م!",
     free: "مجاني", 
     total: "الإجمالي",
@@ -183,17 +170,20 @@ const translations = {
     phone_2: "رقم هاتف آخر (اختياري)",
     address_section: "عنوان التوصيل",
     gov_label: "المحافظة",
-    district_label: "المنطقة / الحي",
+    district_label: "اسم المنطقة",
     street_label: "اسم الشارع",
     building_label: "رقم المبنى",
-    floor_label: "الدور / الشقة",
+    floor_label: "رقم الدور",
+    apt_label: "رقم الشقة",
     custom_title: "خصص رسالتك السرية",
     custom_hint: "اكتب الاسم لرؤية شكل شفرة مورس:",
     custom_limit: "(حد أقصى ١٠ حروف)",
     payment_section: "طريقة الدفع",
-    pay_card: "بطاقة بنكية",
-    pay_apple: "Apple Pay",
-    pay_cod: "دفع عند الاستلام (+١٠ ج.م)",
+    pay_instapay: "انستاباي (Instapay)",
+    pay_cod: "دفع عند الاستلام",
+    instapay_instruction: "يرجى تحويل المبلغ الإجمالي إلى رقم انستاباي:",
+    instapay_number: "٠١٢٨١٧٧٠٠٨٥",
+    upload_receipt: "رفع صورة التحويل (سكرين شوت)",
     place_order: "تأكيد الطلب",
     contact_us: "اتصل بنا",
     send_msg: "إرسال الرسالة",
@@ -222,8 +212,8 @@ const state = {
   selectedProductId: null, 
   searchQuery: '', 
   showSuccessModal: false, 
-  showPolicyModal: false, // New: Policy Modal
-  paymentMethod: 'card', // 'card', 'apple', 'cod'
+  showPolicyModal: false, 
+  paymentMethod: 'instapay', // 'instapay' or 'cod'
   products: [
     { id: 1, name: 'Gold Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
     { id: 2, name: 'Gold Morse Code Bracelet', price: 550, originalPrice: 900, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
@@ -235,9 +225,11 @@ const state = {
   isAuthReady: false,
 };
 
+// Shipping Constants
 const SHIPPING_COST = 100;
 const FREE_SHIPPING_THRESHOLD = 1000;
-const COD_FEE = 10;
+// COD Fee is now 0 as requested
+const COD_FEE = 0; 
 
 function t(key) { return translations[state.lang][key] || key; }
 
@@ -300,19 +292,12 @@ function cartItems() {
   }).filter(Boolean);
 }
 
-// Payment & Total Logic
 function cartTotal() { 
   const sub = cartItems().reduce((s,it)=>s+it.subtotal,0);
   if (sub === 0) return 0;
-  let total = sub;
-  
-  // Shipping
-  if (sub < FREE_SHIPPING_THRESHOLD) total += SHIPPING_COST;
-  
-  // COD Fee
-  if (state.paymentMethod === 'cod') total += COD_FEE;
-  
-  return total; 
+  // Shipping logic
+  const shipping = sub >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  return sub + shipping; 
 }
 
 function updatePaymentMethod(method) {
@@ -351,7 +336,20 @@ function handleSearch(evt) {
   render(); 
 }
 
-// ---------- Firestore & Sheets ----------
+// ---------- Backend Functions ----------
+async function uploadReceiptImage(file) {
+    if(!file) return null;
+    try {
+        const storageRef = ref(storage, `receipts/${currentUserId}_${Date.now()}_${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(snapshot.ref);
+        return url;
+    } catch(e) {
+        console.error("Upload failed", e);
+        return null;
+    }
+}
+
 async function submitOrderToFirestore(orderData){
   if(!currentUserId){ flashMessage('Auth not ready', 'error'); return false; }
   try{ 
@@ -504,9 +502,6 @@ function renderCart(){
   const total = cartTotal();
   const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const shippingDisplay = shippingFee === 0 ? `<span class="text-green-600 font-bold">${t('free')}</span>` : `${shippingFee.toFixed(2)} ${t('original_price')}`;
-  const codDisplay = state.paymentMethod === 'cod' ? `
-    <div class="flex justify-between items-center mb-2 text-sm text-gray-600"><span>${t('cod_fee')}</span><span>${COD_FEE.toFixed(2)} ${t('original_price')}</span></div>
-  ` : '';
 
   if(items.length===0) return `<section class="py-12 px-4 max-w-3xl mx-auto text-center"><h2 class="text-2xl font-bold mb-4">${t('cart_empty')}</h2><button class="px-6 py-2 bg-pink-600 text-white rounded" onclick="window._app.nav('home')">${t('shop_now')}</button></section>`;
   
@@ -519,7 +514,6 @@ function renderCart(){
     <div class="mt-8 pt-6 border-t border-gray-200">
       <div class="flex justify-between items-center mb-2"><span class="text-gray-600">${t('subtotal')}</span><span class="font-bold">${subtotal.toFixed(2)} ${t('original_price')}</span></div>
       <div class="flex justify-between items-center mb-2"><span class="text-gray-600">${t('shipping')}</span><span class="font-bold">${shippingDisplay}</span></div>
-      ${codDisplay}
       <div class="flex justify-between items-center text-xl mt-4 border-t pt-4"><h3 class="font-bold">${t('total')}</h3><div class="font-extrabold text-pink-600">${total.toFixed(2)} ${t('original_price')}</div></div>
     </div>
     <div class="mt-6 flex justify-end gap-4">
@@ -553,17 +547,21 @@ function renderCheckout(){
       <div class="bg-white p-6 rounded shadow">
         <h3 class="font-bold text-lg mb-4 border-b pb-2">2. ${t('address_section')}</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <div><label class="block text-sm font-medium text-gray-700">${t('building_label')}</label><input name="building" required class="mt-1 block w-full p-2 border rounded" /></div>
+            <div><label class="block text-sm font-medium text-gray-700">${t('street_label')}</label><input name="street" required class="mt-1 block w-full p-2 border rounded" /></div>
+            
+            <div><label class="block text-sm font-medium text-gray-700">${t('district_label')}</label><input name="district" required class="mt-1 block w-full p-2 border rounded" placeholder="e.g. Maadi" /></div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">${t('gov_label')}</label>
                 <select name="gov" required class="mt-1 block w-full p-2 border rounded bg-white">
-                    <option value="">Select Governorate</option>
+                    <option value="">Select...</option>
                     ${GOVERNORATES.map(g => `<option value="${g}">${g}</option>`).join('')}
                 </select>
             </div>
-            <div><label class="block text-sm font-medium text-gray-700">${t('district_label')}</label><input name="district" required class="mt-1 block w-full p-2 border rounded" placeholder="e.g. Maadi, Smouha" /></div>
-            <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700">${t('street_label')}</label><input name="street" required class="mt-1 block w-full p-2 border rounded" /></div>
-            <div><label class="block text-sm font-medium text-gray-700">${t('building_label')}</label><input name="building" required class="mt-1 block w-full p-2 border rounded" /></div>
+
             <div><label class="block text-sm font-medium text-gray-700">${t('floor_label')}</label><input name="floor" required class="mt-1 block w-full p-2 border rounded" /></div>
+            <div><label class="block text-sm font-medium text-gray-700">${t('apt_label')}</label><input name="apt" required class="mt-1 block w-full p-2 border rounded" /></div>
         </div>
       </div>
       
@@ -578,14 +576,13 @@ function renderCheckout(){
       <div class="bg-white p-6 rounded shadow">
         <h3 class="font-bold text-lg mb-4 border-b pb-2">4. ${t('payment_section')}</h3>
         <div class="space-y-3">
-            <label class="flex items-center space-x-3 cursor-pointer p-3 border rounded ${state.paymentMethod==='card'?'border-pink-500 bg-pink-50':''}" onclick="window._app.updatePaymentMethod('card')">
-                <input type="radio" name="payment" value="card" ${state.paymentMethod==='card'?'checked':''} class="h-5 w-5 text-pink-600">
-                <span class="font-medium">${t('pay_card')}</span>
-            </label>
             
-            <label class="flex items-center space-x-3 cursor-pointer p-3 border rounded ${state.paymentMethod==='apple'?'border-pink-500 bg-pink-50':''}" onclick="window._app.updatePaymentMethod('apple')">
-                <input type="radio" name="payment" value="apple" ${state.paymentMethod==='apple'?'checked':''} class="h-5 w-5 text-pink-600">
-                <span class="font-medium">${t('pay_apple')}</span>
+            <label class="flex items-center space-x-3 cursor-pointer p-3 border rounded ${state.paymentMethod==='instapay'?'border-pink-500 bg-pink-50':''}" onclick="window._app.updatePaymentMethod('instapay')">
+                <input type="radio" name="payment" value="instapay" ${state.paymentMethod==='instapay'?'checked':''} class="h-5 w-5 text-pink-600">
+                <span class="font-medium flex items-center gap-2">
+                    <img src="https://instapay.eg/assets/images/logo.png" class="h-6 w-auto" alt="Instapay" onerror="this.style.display='none'"/> 
+                    ${t('pay_instapay')}
+                </span>
             </label>
 
             <label class="flex items-center space-x-3 cursor-pointer p-3 border rounded ${state.paymentMethod==='cod'?'border-pink-500 bg-pink-50':''}" onclick="window._app.updatePaymentMethod('cod')">
@@ -595,21 +592,18 @@ function renderCheckout(){
         </div>
 
         <div class="mt-4 p-4 border rounded bg-gray-50">
-            ${state.paymentMethod === 'card' ? `
-                <div class="space-y-3">
-                    <input placeholder="Card Number" maxlength="19" class="w-full p-2 border rounded" />
-                    <div class="flex gap-2">
-                        <input placeholder="MM/YY" maxlength="5" class="w-1/2 p-2 border rounded" />
-                        <input placeholder="CVC" maxlength="3" class="w-1/2 p-2 border rounded" />
+            ${state.paymentMethod === 'instapay' ? `
+                <div class="text-center space-y-4">
+                    <p class="text-sm font-medium text-gray-700">${t('instapay_instruction')}</p>
+                    <div class="text-2xl font-bold text-pink-600 tracking-wider">${t('instapay_number')}</div>
+                    
+                    <div class="mt-2 border-t pt-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">${t('upload_receipt')}</label>
+                        <input type="file" name="receipt" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100" />
                     </div>
                 </div>
-            ` : state.paymentMethod === 'apple' ? `
-                <div class="text-center">
-                    <div class="apple-pay-button">Pay with Pay</div>
-                    <p class="text-xs text-gray-500 mt-2">Secure biometric authentication required.</p>
-                </div>
             ` : `
-                <p class="text-sm text-gray-600">Please prepare exact cash amount upon delivery.</p>
+                <p class="text-sm text-gray-600 text-center">Prepare the exact amount (${total.toFixed(2)} EGP) for the courier.</p>
             `}
         </div>
       </div>
@@ -685,7 +679,7 @@ function renderPolicyModal() {
         <p><strong>1. Delivery:</strong> Standard delivery takes 3-5 business days. Expedited shipping is available upon request.</p>
         <p><strong>2. Returns:</strong> Since our jewelry is personalized with Morse Code, returns are only accepted if the product arrives damaged or with an error in the encoding.</p>
         <p><strong>3. Repairs:</strong> We offer a 30-day warranty on cords and clasps.</p>
-        <p><strong>4. Payment:</strong> Secure payments via Credit Card, Apple Pay, or Cash on Delivery.</p>
+        <p><strong>4. Payment:</strong> We accept Instapay (send receipt) and Cash on Delivery.</p>
       </div>
       <button onclick="window._app.togglePolicyModal()" class="w-full mt-6 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">${t('close')}</button>
     </div>
@@ -732,27 +726,42 @@ async function handleCheckoutSubmit(evt){
   const phone2 = form.phone2.value.trim();
   const customText = form.custom_text.value.trim();
   
-  // Detailed Address Construction
-  const gov = form.gov.value;
-  const district = form.district.value.trim();
-  const street = form.street.value.trim();
+  // Address Order: Building, Street, Area, Gov, Floor, Apt
   const building = form.building.value.trim();
+  const street = form.street.value.trim();
+  const district = form.district.value.trim();
+  const gov = form.gov.value;
   const floor = form.floor.value.trim();
+  const apt = form.apt.value.trim();
   
-  const fullAddress = `${street}, Bldg ${building}, Fl ${floor}, ${district}, ${gov}`;
+  const fullAddress = `Bldg ${building}, ${street}, ${district}, ${gov}, Fl ${floor}, Apt ${apt}`;
 
   const phoneRegex = /^\d{11}$/;
   if (!phoneRegex.test(phone1)) { flashMessage(t('phone_error'), 'error'); return; }
-  if(!name || !phone1 || !gov || !district || !street || !customText){ flashMessage(t('fill_fields'), 'error'); return; }
+  if(!name || !phone1 || !gov || !district || !street || !building || !floor || !apt || !customText){ flashMessage(t('fill_fields'), 'error'); return; }
 
-  // Recalculate Logic
+  // Check Receipt for Instapay
+  let receiptUrl = null;
+  if(state.paymentMethod === 'instapay') {
+      const fileInput = form.receipt;
+      if(fileInput && fileInput.files.length > 0) {
+          flashMessage('Uploading receipt...', 'success', 2000);
+          receiptUrl = await uploadReceiptImage(fileInput.files[0]);
+          if(!receiptUrl) {
+              flashMessage('Failed to upload receipt image. Please try again.', 'error');
+              return;
+          }
+      } else {
+          // If no file, we might want to warn or proceed with text only
+          // Let's require it for now as per "upload photo" request
+          flashMessage('Please upload the payment receipt', 'error');
+          return;
+      }
+  }
+
   const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
   let shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
-  let finalTotal = subtotal + shippingFee;
-  
-  if(state.paymentMethod === 'cod') {
-      finalTotal += COD_FEE;
-  }
+  let finalTotal = subtotal + shippingFee; // COD Fee is 0
 
   const orderData = { 
       name, phone1, phone2, 
@@ -762,6 +771,7 @@ async function handleCheckoutSubmit(evt){
       totalPrice: finalTotal, 
       shippingFee, 
       paymentMethod: state.paymentMethod,
+      receiptUrl: receiptUrl, // Stores the image URL
       currency: 'EGP' 
   };
   
