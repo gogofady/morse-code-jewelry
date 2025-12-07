@@ -7,11 +7,12 @@
   <title>Morse Jewelry | Express Yourself in Secret</title>
   <meta property="og:title" content="Morse Jewelry - Personalized Secret Messages" />
   <meta property="og:description" content="Convert any name or word into beautiful handmade jewelry using Morse code." />
-  <meta property="og:image" content="./morsecodelogo.png" />
+  
+  <meta property="og:image" content="./morse_code.png" />
   
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <link rel="icon" href="./morsecodelogo.png" type="image/png">
+  <link rel="icon" href="./morse_code.png" type="image/png">
 
   <style>
     body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
@@ -79,7 +80,7 @@ const translations = {
     hero_sub: "Beautiful jewelry with a hidden meaning.",
     collection: "Our Collection",
     add_cart: "Add to Cart",
-    customize: "Customize", // New
+    customize: "Customize", 
     original_price: "EGP", 
     morse_title: "What is Morse Code?",
     morse_desc_1: "Morse code encodes text characters as sequences of dots (.) and dashes (-).",
@@ -91,7 +92,7 @@ const translations = {
     subtotal: "Subtotal",
     shipping: "Shipping Fees",
     shipping_banner: "🚚 Free shipping on orders over 1000 EGP!",
-    free: "FREE", // New
+    free: "FREE", 
     total: "Total",
     clear_cart: "Clear Cart",
     proceed: "Proceed to Checkout",
@@ -131,7 +132,7 @@ const translations = {
     hero_sub: "مجوهرات جميلة تحمل معنى خفي",
     collection: "مجموعتنا المميزة",
     add_cart: "أضف للسلة",
-    customize: "تخصيص", // New
+    customize: "تخصيص", 
     original_price: "ج.م",
     morse_title: "ما هي شفرة مورس؟",
     morse_desc_1: "شفرة مورس تحول الحروف إلى نقاط (.) وشرطات (-).",
@@ -143,7 +144,7 @@ const translations = {
     subtotal: "المجموع الفرعي",
     shipping: "مصاريف الشحن",
     shipping_banner: "🚚 شحن مجاني للطلبات فوق ١٠٠٠ ج.م!",
-    free: "مجاني", // New
+    free: "مجاني", 
     total: "الإجمالي",
     clear_cart: "إفراغ السلة",
     proceed: "إتمام الشراء",
@@ -192,7 +193,7 @@ const state = {
   isAuthReady: false,
 };
 
-// 1. UPDATED SHIPPING CONSTANTS
+// Shipping Constants
 const SHIPPING_COST = 100;
 const FREE_SHIPPING_THRESHOLD = 1000;
 
@@ -257,11 +258,11 @@ function cartItems() {
   }).filter(Boolean);
 }
 
-// 1. UPDATED SHIPPING LOGIC
+// Shipping Logic
 function cartTotal() { 
   const sub = cartItems().reduce((s,it)=>s+it.subtotal,0);
   if (sub === 0) return 0;
-  if (sub >= FREE_SHIPPING_THRESHOLD) return sub; // Free shipping
+  if (sub >= FREE_SHIPPING_THRESHOLD) return sub; 
   return sub + SHIPPING_COST; 
 }
 
@@ -335,7 +336,7 @@ function renderNavbar(){
       
       <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
         <div class="flex items-center gap-2 cursor-pointer" onclick="window._app.nav('home')">
-            <img src="./morsecodelogo.png" alt="Logo" class="h-10 md:h-16 w-auto object-contain">
+            <img src="./morse_code.png" alt="Logo" class="h-10 md:h-16 w-auto object-contain">
             <span class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">${t('title')}</span>
         </div>
         
@@ -383,7 +384,7 @@ function renderHome(){
   <section class="py-6 px-4 max-w-7xl mx-auto">
     
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-12 mb-12 flex flex-col md:flex-row items-center gap-8">
-        <div class="flex-1 w-full"><img src="./morsecode.webp" alt="Morse Code" class="w-full rounded-xl shadow-md object-cover"></div>
+        <div class="flex-1 w-full"><img src="./morse_logo_transparent.png" alt="Morse Code" class="w-full rounded-xl shadow-md object-cover"></div>
         <div class="flex-1 space-y-4">
             <h2 class="text-2xl font-bold text-gray-800">${t('morse_title')}</h2>
             <p class="text-gray-600 leading-relaxed">${t('morse_desc_1')}</p>
