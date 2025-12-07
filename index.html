@@ -8,7 +8,8 @@
   <meta property="og:title" content="Morse Jewelry - Personalized Secret Messages" />
   <meta property="og:description" content="Convert any name or word into beautiful handmade jewelry using Morse code." />
   <meta property="og:image" content="./morsecodelogo.png" />
-  <meta property="og:url" content="https://morse-code-jewelry.firebaseapp.com" /> <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
 
   <link rel="icon" href="./morsecodelogo.png" type="image/png">
 
@@ -17,14 +18,14 @@
     .hidden-until-ready { opacity: 0; transition: opacity .25s ease-in; }
     .visible-ready { opacity: 1; }
     
-    /* Animation for flash messages and modals */
+    /* Animations */
     .flash-slide-in { animation: slideIn 0.5s ease-out forwards; }
     @keyframes slideIn { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
     
     .modal-fade-in { animation: fadeIn 0.3s ease-out forwards; }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-    /* Arabic Font Support */
+    /* Arabic Font */
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
     .font-arabic { font-family: 'Cairo', sans-serif; }
   </style>
@@ -56,17 +57,15 @@ try { getAnalytics(app); } catch(e) { console.info("Analytics init skipped:", e?
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// =================================================================
-// YOUR GOOGLE SHEET CONNECTION
-// =================================================================
+// Your Google Sheet
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuMlTdvd8sJYjNni9vvFEXsgtk8nLjCNqpbDYyjGmMnBX22EK7l3DT86vGnCtCtQyF/exec";
 
-// ---------- Morse Code Dictionary for Preview ----------
+// Morse Dictionary
 const MORSE_CODE = { 
   'a': '.-', 'b': '-...', 'c': '-.-.', 'd': '-..', 'e': '.', 'f': '..-.', 'g': '--.', 'h': '....', 'i': '..', 'j': '.---', 'k': '-.-', 'l': '.-..', 'm': '--', 'n': '-.', 'o': '---', 'p': '.--.', 'q': '--.-', 'r': '.-.', 's': '...', 't': '-', 'u': '..-', 'v': '...-', 'w': '.--', 'x': '-..-', 'y': '-.--', 'z': '--..', '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----', ' ': ' / ' 
 };
 
-// ---------- Translations Dictionary ----------
+// Translations
 const translations = {
   en: {
     title: "Morse Jewelry",
@@ -176,8 +175,8 @@ const state = {
   page: 'home',
   cart: [],
   selectedProductId: null, 
-  searchQuery: '', // New: For Search Feature
-  showSuccessModal: false, // New: For Success Modal
+  searchQuery: '', 
+  showSuccessModal: false, 
   products: [
     { id: 1, name: 'Gold Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
     { id: 2, name: 'Gold Morse Code Bracelet', price: 550, originalPrice: 900, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
@@ -193,6 +192,14 @@ const SHIPPING_COST = 100;
 
 function t(key) { return translations[state.lang][key] || key; }
 
+// --- FIXED: Hard Navigation Function ---
+// This replaces the old listeners that were breaking
+function nav(pageName) {
+    state.page = pageName;
+    render();
+    window.scrollTo(0,0);
+}
+
 function toggleLang() {
   state.lang = state.lang === 'en' ? 'ar' : 'en';
   document.body.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
@@ -201,7 +208,6 @@ function toggleLang() {
   render();
 }
 
-// 1. Dynamic Page Titles
 function updateTitle() {
   if (state.page === 'product_detail' && state.selectedProductId) {
     const p = findProduct(state.selectedProductId);
@@ -267,11 +273,9 @@ function flashMessage(msg, type='success', ms=3000){
   flashTimer=setTimeout(()=>{state.message=''; render();}, ms);
 }
 
-// New: Modal Control
 function showSuccessModal() { state.showSuccessModal = true; render(); }
 function closeSuccessModal() { state.showSuccessModal = false; render(); }
 
-// Navigation
 function viewProduct(id) {
   state.selectedProductId = Number(id);
   state.page = 'product_detail';
@@ -279,13 +283,17 @@ function viewProduct(id) {
   window.scrollTo(0,0);
 }
 
-// New: Search Handler
+// --- FIXED: Search Handler ---
+// Now forces the page to 'home' so results appear immediately
 function handleSearch(evt) {
   state.searchQuery = evt.target.value.toLowerCase();
-  render(); // Re-render to filter products
+  if(state.page !== 'home') {
+      state.page = 'home';
+  }
+  render(); 
 }
 
-// ---------- Firestore ----------
+// ---------- Firestore & Sheets ----------
 async function submitOrderToFirestore(orderData){
   if(!currentUserId){ flashMessage('Auth not ready', 'error'); return false; }
   try{ 
@@ -295,7 +303,7 @@ async function submitOrderToFirestore(orderData){
     }
     return true; 
   }
-  catch(e){ console.error(e); flashMessage('Order failed', 'error'); return false; }
+  catch(e){ console.error(e); flashMessage('Order failed: ' + e.message, 'error'); return false; }
 }
 
 async function submitContactToFirestore(contactData){
@@ -313,8 +321,9 @@ function renderNavbar(){
   const cartCount = state.cart.reduce((s,i)=>s+i.quantity,0);
   const langLabel = state.lang === 'en' ? '🌐 AR' : '🌐 EN';
   
+  // --- FIXED: Bigger Free Delivery Banner ---
   return `
-  <div class="bg-gray-900 text-white text-xs text-center py-2 tracking-wide">
+  <div class="bg-gray-900 text-white text-sm font-bold text-center py-3 tracking-wide">
     ${t('shipping_banner')}
   </div>
 
@@ -322,13 +331,14 @@ function renderNavbar(){
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
       
       <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-        <div class="flex items-center gap-2 cursor-pointer" onclick="window._app.state.page='home'; window._app.render();">
+        <div class="flex items-center gap-2 cursor-pointer" onclick="window._app.nav('home')">
             <img src="./morsecodelogo.png" alt="Logo" class="h-10 md:h-16 w-auto object-contain">
             <span class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">${t('title')}</span>
         </div>
+        
         <div class="flex items-center gap-2 md:hidden">
             <button onclick="window._app.toggleLang()" class="px-2 py-1 border rounded text-xs font-bold text-pink-600">${langLabel}</button>
-            <button data-nav="cart" class="relative p-2 text-gray-700">
+            <button onclick="window._app.nav('cart')" class="relative p-2 text-gray-700">
              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" /></svg>
              ${cartCount ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">${cartCount}</span>` : ''}
             </button>
@@ -336,8 +346,10 @@ function renderNavbar(){
       </div>
 
       <div class="flex items-center gap-4 w-full md:w-auto">
+        
         <div class="relative flex-1 md:flex-none">
             <input type="text" placeholder="${t('search_placeholder')}" 
+                value="${state.searchQuery}"
                 oninput="window._app.handleSearch(event)"
                 class="w-full md:w-48 pl-3 pr-8 py-1.5 rounded-full border border-gray-300 focus:outline-none focus:border-pink-500 text-sm transition-all focus:w-full md:focus:w-64"
             >
@@ -345,10 +357,10 @@ function renderNavbar(){
         </div>
 
         <div class="hidden md:flex items-center gap-4">
-            <button data-nav="home" class="text-sm font-medium text-gray-700 hover:text-pink-600 uppercase">${t('shop')}</button>
-            <button data-nav="gallery" class="text-sm font-medium text-gray-700 hover:text-pink-600">${t('gallery')}</button>
+            <button onclick="window._app.nav('home')" class="text-sm font-medium text-gray-700 hover:text-pink-600 uppercase cursor-pointer">${t('shop')}</button>
+            <button onclick="window._app.nav('gallery')" class="text-sm font-medium text-gray-700 hover:text-pink-600 cursor-pointer">${t('gallery')}</button>
             <button onclick="window._app.toggleLang()" class="px-2 py-1 border rounded text-xs hover:bg-gray-100 font-bold text-pink-600">${langLabel}</button>
-            <button data-nav="cart" class="relative p-2 text-gray-700 hover:text-pink-600">
+            <button onclick="window._app.nav('cart')" class="relative p-2 text-gray-700 hover:text-pink-600">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
               </svg>
@@ -362,7 +374,6 @@ function renderNavbar(){
 }
 
 function renderHome(){
-  // Filter products based on search
   const filteredProducts = state.products.filter(p => p.name.toLowerCase().includes(state.searchQuery));
 
   return `
@@ -418,7 +429,7 @@ function renderProductDetail() {
       
       <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
         <div class="mb-6">
-          <button data-nav="home" class="text-gray-500 hover:text-pink-600 mb-4 inline-flex items-center gap-1">
+          <button onclick="window._app.nav('home')" class="text-gray-500 hover:text-pink-600 mb-4 inline-flex items-center gap-1">
              ${state.lang==='ar' ? '&rarr;' : '&larr;'} ${t('back_shop')}
           </button>
           <img src="${escapeHtml(mainProduct.image)}" alt="${escapeHtml(mainProduct.name)}" class="w-full h-96 object-cover rounded-lg shadow-sm">
@@ -489,7 +500,7 @@ function renderCart(){
   const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
   const total = cartTotal();
 
-  if(items.length===0) return `<section class="py-12 px-4 max-w-3xl mx-auto text-center"><h2 class="text-2xl font-bold mb-4">${t('cart_empty')}</h2><button class="px-6 py-2 bg-pink-600 text-white rounded" data-nav="home">${t('shop_now')}</button></section>`;
+  if(items.length===0) return `<section class="py-12 px-4 max-w-3xl mx-auto text-center"><h2 class="text-2xl font-bold mb-4">${t('cart_empty')}</h2><button class="px-6 py-2 bg-pink-600 text-white rounded" onclick="window._app.nav('home')">${t('shop_now')}</button></section>`;
   
   return `
   <section class="py-12 px-4 max-w-4xl mx-auto">
@@ -517,7 +528,7 @@ function renderCart(){
 
     <div class="mt-6 flex justify-end gap-4">
       <button id="btn-clear-cart" class="px-6 py-3 border rounded">${t('clear_cart')}</button>
-      <button class="px-6 py-3 bg-pink-600 text-white rounded" data-nav="checkout">${t('proceed')}</button>
+      <button class="px-6 py-3 bg-pink-600 text-white rounded" onclick="window._app.nav('checkout')">${t('proceed')}</button>
     </div>
   </section>`;
 }
@@ -526,12 +537,13 @@ function renderCheckout(){
   const items = cartItems();
   const total = cartTotal();
 
-  if(items.length===0) return `<section class="py-12 px-4 max-w-2xl mx-auto text-center"><p class="text-lg">${t('cart_empty')}</p><div class="mt-4"><button class="px-4 py-2 bg-pink-600 text-white rounded" data-nav="home">${t('shop_now')}</button></div></section>`;
+  if(items.length===0) return `<section class="py-12 px-4 max-w-2xl mx-auto text-center"><p class="text-lg">${t('cart_empty')}</p><div class="mt-4"><button class="px-4 py-2 bg-pink-600 text-white rounded" onclick="window._app.nav('home')">${t('shop_now')}</button></div></section>`;
   
+  // --- FIXED: Form onsubmit uses inline function ---
   return `
   <section class="py-12 px-4 max-w-2xl mx-auto">
     <h2 class="text-3xl font-bold mb-6">${t('checkout_title')}</h2>
-    <form id="checkout-form" class="bg-white p-6 rounded shadow space-y-4">
+    <form id="checkout-form" class="bg-white p-6 rounded shadow space-y-4" onsubmit="window._app.handleCheckoutSubmit(event)">
       <div><label class="block text-sm font-medium text-gray-700">${t('full_name')}</label><input name="name" required class="mt-1 block w-full p-2 border rounded" /></div>
       <div><label class="block text-sm font-medium text-gray-700">${t('phone_1')}</label><input name="phone1" type="tel" maxlength="11" required class="mt-1 block w-full p-2 border rounded" placeholder="01xxxxxxxxx" /></div>
       <div><label class="block text-sm font-medium text-gray-700">${t('phone_2')}</label><input name="phone2" type="tel" class="mt-1 block w-full p-2 border rounded" /></div>
@@ -562,7 +574,7 @@ function renderContact(){
   return `
   <section class="py-12 px-4 max-w-xl mx-auto">
     <h2 class="text-3xl font-bold mb-4 text-center">${t('contact_us')}</h2>
-    <form id="contact-form" class="bg-white p-6 rounded shadow space-y-4">
+    <form id="contact-form" class="bg-white p-6 rounded shadow space-y-4" onsubmit="window._app.handleContactSubmit(event)">
       <input name="name" placeholder="${t('full_name')}" required class="w-full p-2 border rounded" />
       <input name="phone" type="tel" placeholder="${t('phone_1')}" required class="w-full p-2 border rounded" />
       <textarea name="message" placeholder="Message..." required class="w-full p-2 border rounded"></textarea>
@@ -585,7 +597,6 @@ function renderFooter(){
   </footer>`;
 }
 
-// New: Success Modal Render
 function renderSuccessModal() {
   if (!state.showSuccessModal) return '';
   return `
@@ -621,14 +632,20 @@ function render(){
       ${renderNavbar()}
       <main class="flex-1 bg-gray-50">${content}</main>
       ${renderFooter()}
-      
       ${state.message ? `<div id="flash" class="flash-slide-in fixed top-6 left-1/2 transform -translate-x-1/2 ${flashColorClass} text-white px-8 py-3 rounded-full shadow-lg z-50 text-center font-medium">${escapeHtml(state.message)}</div>` : ''}
-      
       ${renderSuccessModal()}
     </div>
   `;
+
+  // --- FIXED: Removed problematic listener attachment logic ---
+  // The logic is now inline in HTML (onclick="...")
+  
+  // Re-attach listener only for cart quantity because it's tricky to inline perfectly
+  document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ const id=Number(input.getAttribute('data-cart-qty')); const value=parseInt(input.value)||0; updateQuantity(id,value); });
+  const clearBtn = document.getElementById('btn-clear-cart'); if(clearBtn) clearBtn.onclick=clearCart;
 }
 
+// --- FIXED: Handlers exposed globally for inline HTML access ---
 async function handleCheckoutSubmit(evt){
   evt.preventDefault();
   const form = evt.target;
@@ -648,7 +665,7 @@ async function handleCheckoutSubmit(evt){
   if(success){ 
     clearCart(); 
     state.page='home'; 
-    showSuccessModal(); // 1. Better Error Handling (Success Modal)
+    showSuccessModal(); 
   }
 }
 
@@ -664,7 +681,7 @@ async function handleContactSubmit(evt){
   if(success){ form.reset(); }
 }
 
-window._app={state, addToCart, viewProduct, updateQuantity, clearCart, cartItems, cartTotal, toggleLang, translateToMorse, handleSearch, render, closeSuccessModal};
+window._app={state, addToCart, viewProduct, updateQuantity, clearCart, cartItems, cartTotal, toggleLang, translateToMorse, handleSearch, render, closeSuccessModal, nav, handleCheckoutSubmit, handleContactSubmit};
 
 render();
 </script>
