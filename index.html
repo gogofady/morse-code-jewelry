@@ -7,9 +7,11 @@
   <title>Morse Jewelry | Express Yourself in Secret</title>
   <meta property="og:title" content="Morse Jewelry - Personalized Secret Messages" />
   <meta property="og:description" content="Convert any name or word into beautiful handmade jewelry using Morse code." />
+  
   <meta property="og:image" content="./morse_logo_transparent.png" />
   
   <script src="https://cdn.tailwindcss.com"></script>
+
   <link rel="icon" href="./morse_logo_transparent.png" type="image/png">
 
   <style>
@@ -17,6 +19,7 @@
     .hidden-until-ready { opacity: 0; transition: opacity .25s ease-in; }
     .visible-ready { opacity: 1; }
     
+    /* Animations */
     .flash-slide-in { animation: slideIn 0.5s ease-out forwards; }
     @keyframes slideIn { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
     
@@ -37,8 +40,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebas
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-// NEW: Import Storage for Image Uploads
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-storage.js";
 
 // ---------- Firebase config ----------
 const firebaseConfig = {
@@ -52,323 +53,112 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-try { getAnalytics(app); } catch(e) { console.info("Analytics init skipped:", e?.message || e); }
+try { getAnalytics(app); } catch(e) { console.info("Analytics init skipped"); }
 
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
+// >>> YOUR GOOGLE SCRIPT URL <<<
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuMlTdvd8sJYjNni9vvFEXsgtk8nLjCNqpbDYyjGmMnBX22EK7l3DT86vGnCtCtQyF/exec";
 
 // Morse Dictionary
 const MORSE_CODE = { 'a': '.-', 'b': '-...', 'c': '-.-.', 'd': '-..', 'e': '.', 'f': '..-.', 'g': '--.', 'h': '....', 'i': '..', 'j': '.---', 'k': '-.-', 'l': '.-..', 'm': '--', 'n': '-.', 'o': '---', 'p': '.--.', 'q': '--.-', 'r': '.-.', 's': '...', 't': '-', 'u': '..-', 'v': '...-', 'w': '.--', 'x': '-..-', 'y': '-.--', 'z': '--..', '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----', ' ': ' / ' };
 
 // Egyptian Governorates
-const GOVERNORATES = [
-  "Cairo", "Giza", "Alexandria", "Dakahlia", "Red Sea", "Beheira", "Fayoum", "Gharbiya", "Ismailia", "Menofia", "Minya", "Qaliubiya", "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said", "Damietta", "Sharkia", "South Sinai", "Kafr Al Sheikh", "Matrouh", "Luxor", "Qena", "North Sinai", "Sohag"
-];
+const GOVERNORATES = ["Cairo", "Giza", "Alexandria", "Dakahlia", "Red Sea", "Beheira", "Fayoum", "Gharbiya", "Ismailia", "Menofia", "Minya", "Qaliubiya", "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said", "Damietta", "Sharkia", "South Sinai", "Kafr Al Sheikh", "Matrouh", "Luxor", "Qena", "North Sinai", "Sohag"];
 
 // Translations
 const translations = {
   en: {
-    title: "Morse Jewelry",
-    shop: "Shop",
-    gallery: "Gallery",
-    contact: "Contact",
-    search_placeholder: "Search items...",
-    cart_empty: "Your cart is empty",
-    shop_now: "Shop Now",
-    hero_title: "Express Yourself in Secret",
-    hero_sub: "Beautiful jewelry with a hidden meaning.",
-    collection: "Our Collection",
-    add_cart: "Add to Cart",
-    customize: "Customize", 
-    original_price: "EGP", 
-    morse_title: "What is Morse Code?",
-    morse_desc_1: "Morse code encodes text characters as sequences of dots (.) and dashes (-).",
-    morse_desc_2: "We use Round Beads for Dots and Long Beads for Dashes.",
-    morse_secret: "It's a secret message only you understand!",
-    spotlight: "Customer Spotlight Gallery",
-    spotlight_sub: "Click on any photo to shop the look!",
-    your_cart: "Your Shopping Cart",
-    subtotal: "Subtotal",
-    shipping: "Shipping Fees",
-    shipping_banner: "🚚 Free shipping on orders over 1000 EGP!",
-    free: "FREE", 
-    total: "Total",
-    clear_cart: "Clear Cart",
-    proceed: "Proceed to Checkout",
-    checkout_title: "Secure Checkout",
-    full_name: "Full Name",
-    phone_1: "Phone Number (11 digits)",
-    phone_2: "Backup Phone (Optional)",
-    address_section: "Delivery Address",
-    gov_label: "Governorate",
-    district_label: "Area Name",
-    street_label: "Street Name",
-    building_label: "Building No.",
-    floor_label: "Floor No.",
-    apt_label: "Apartment No.",
-    custom_title: "Personalize Your Secret Message",
-    custom_hint: "Type your name to see the Morse preview:",
-    custom_limit: "(Up to 10 characters)",
-    payment_section: "Payment Method",
-    pay_instapay: "Instapay",
-    pay_cod: "Cash on Delivery",
-    instapay_instruction: "Please send the total amount to this Instapay number/address:",
-    instapay_number: "01281770085",
-    upload_receipt: "Upload Payment Receipt (Screenshot)",
-    place_order: "Place Order",
-    contact_us: "Contact Us",
-    send_msg: "Send Message",
-    footer_rights: "All rights reserved.",
-    back_shop: "Back to Shop",
-    you_like: "You might also like",
-    added_cart: "Added to cart successfully",
-    order_success_title: "Order Successful! 🎉",
-    order_success_msg: "Thank you! We have received your order and will contact you shortly.",
-    policy_link: "Return & Delivery Policy",
-    policy_title: "Return & Delivery Policy",
-    close: "Close",
-    fill_fields: "Please fill all required fields",
-    phone_error: "Phone number must be exactly 11 digits",
-    secure_checkout: "Secure Checkout",
-    easy_returns: "Easy Returns",
-    customer_support: "Customer Support"
+    title: "Morse Jewelry", shop: "Shop", gallery: "Gallery", contact: "Contact", search_placeholder: "Search items...", cart_empty: "Your cart is empty", shop_now: "Shop Now", hero_title: "Express Yourself in Secret", hero_sub: "Beautiful jewelry with a hidden meaning.", collection: "Our Collection", add_cart: "Add to Cart", customize: "Customize", original_price: "EGP", morse_title: "What is Morse Code?", morse_desc_1: "Morse code encodes text characters as sequences of dots (.) and dashes (-).", morse_desc_2: "We use Round Beads for Dots and Long Beads for Dashes.", morse_secret: "It's a secret message only you understand!", spotlight: "Customer Spotlight Gallery", spotlight_sub: "Click on any photo to shop the look!", your_cart: "Your Shopping Cart", subtotal: "Subtotal", shipping: "Shipping Fees", shipping_banner: "🚚 Free shipping on orders over 1000 EGP!", free: "FREE", total: "Total", clear_cart: "Clear Cart", proceed: "Proceed to Checkout", checkout_title: "Secure Checkout", full_name: "Full Name", phone_1: "Phone Number (11 digits)", phone_2: "Backup Phone (Optional)", address_section: "Delivery Address", gov_label: "Governorate", district_label: "Area Name", street_label: "Street Name", building_label: "Building No.", floor_label: "Floor No.", apt_label: "Apartment No.", custom_title: "Personalize Your Secret Message", custom_hint: "Type your name to see the Morse preview:", custom_limit: "(Up to 10 characters)", payment_section: "Payment Method", pay_instapay: "Instapay", pay_cod: "Cash on Delivery", instapay_instruction: "Please send the total amount to this Instapay number/address:", instapay_number: "01281770085", upload_receipt: "Upload Payment Receipt (Screenshot)", place_order: "Place Order", contact_us: "Contact Us", send_msg: "Send Message", footer_rights: "All rights reserved.", back_shop: "Back to Shop", you_like: "You might also like", added_cart: "Added to cart successfully", order_success_title: "Order Successful! 🎉", order_success_msg: "Thank you! We have received your order and will contact you shortly.", policy_link: "Return & Delivery Policy", policy_title: "Return & Delivery Policy", close: "Close", fill_fields: "Please fill all required fields", phone_error: "Phone number must be exactly 11 digits", secure_checkout: "Secure Checkout", easy_returns: "Easy Returns", customer_support: "Customer Support"
   },
   ar: {
-    title: "مورس للمجوهرات",
-    shop: "المتجر",
-    gallery: "المعرض",
-    contact: "تواصل معنا",
-    search_placeholder: "ابحث عن منتج...",
-    cart_empty: "سلة التسوق فارغة",
-    shop_now: "تسوق الآن",
-    hero_title: "عبر عن نفسك بسرية",
-    hero_sub: "مجوهرات جميلة تحمل معنى خفي",
-    collection: "مجموعتنا المميزة",
-    add_cart: "أضف للسلة",
-    customize: "تخصيص", 
-    original_price: "ج.م",
-    morse_title: "ما هي شفرة مورس؟",
-    morse_desc_1: "شفرة مورس تحول الحروف إلى نقاط (.) وشرطات (-).",
-    morse_desc_2: "نستخدم الخرز الدائري للنقاط والخرز الطويل للشرطات.",
-    morse_secret: "إنها رسالة سرية لا يفهمها إلا أنت!",
-    spotlight: "معرض صور العملاء",
-    spotlight_sub: "اضغط على أي صورة لشراء نفس المنتج!",
-    your_cart: "سلة التسوق الخاصة بك",
-    subtotal: "المجموع الفرعي",
-    shipping: "مصاريف الشحن",
-    shipping_banner: "🚚 شحن مجاني للطلبات فوق ١٠٠٠ ج.م!",
-    free: "مجاني", 
-    total: "الإجمالي",
-    clear_cart: "إفراغ السلة",
-    proceed: "إتمام الشراء",
-    checkout_title: "دفع آمن",
-    full_name: "الاسم بالكامل",
-    phone_1: "رقم الهاتف (١١ رقم)",
-    phone_2: "رقم هاتف آخر (اختياري)",
-    address_section: "عنوان التوصيل",
-    gov_label: "المحافظة",
-    district_label: "اسم المنطقة",
-    street_label: "اسم الشارع",
-    building_label: "رقم المبنى",
-    floor_label: "رقم الدور",
-    apt_label: "رقم الشقة",
-    custom_title: "خصص رسالتك السرية",
-    custom_hint: "اكتب الاسم لرؤية شكل شفرة مورس:",
-    custom_limit: "(حد أقصى ١٠ حروف)",
-    payment_section: "طريقة الدفع",
-    pay_instapay: "انستاباي (Instapay)",
-    pay_cod: "دفع عند الاستلام",
-    instapay_instruction: "يرجى تحويل المبلغ الإجمالي إلى رقم انستاباي:",
-    instapay_number: "٠١٢٨١٧٧٠٠٨٥",
-    upload_receipt: "رفع صورة التحويل (سكرين شوت)",
-    place_order: "تأكيد الطلب",
-    contact_us: "اتصل بنا",
-    send_msg: "إرسال الرسالة",
-    footer_rights: "جميع الحقوق محفوظة.",
-    back_shop: "العودة للمتجر",
-    you_like: "قد يعجبك أيضاً",
-    added_cart: "تمت الإضافة للسلة بنجاح",
-    order_success_title: "تم الطلب بنجاح! 🎉",
-    order_success_msg: "شكراً لك! لقد استلمنا طلبك وسنتواصل معك قريباً.",
-    policy_link: "سياسة الاسترجاع والشحن",
-    policy_title: "سياسة الاسترجاع والشحن",
-    close: "إغلاق",
-    fill_fields: "يرجى ملء جميع البيانات المطلوبة",
-    phone_error: "يجب أن يتكون رقم الهاتف من ١١ رقماً",
-    secure_checkout: "دفع آمن",
-    easy_returns: "سهولة الاسترجاع",
-    customer_support: "دعم فني"
+    title: "مورس للمجوهرات", shop: "المتجر", gallery: "المعرض", contact: "تواصل معنا", search_placeholder: "ابحث عن منتج...", cart_empty: "سلة التسوق فارغة", shop_now: "تسوق الآن", hero_title: "عبر عن نفسك بسرية", hero_sub: "مجوهرات جميلة تحمل معنى خفي", collection: "مجموعتنا المميزة", add_cart: "أضف للسلة", customize: "تخصيص", original_price: "ج.م", morse_title: "ما هي شفرة مورس؟", morse_desc_1: "شفرة مورس تحول الحروف إلى نقاط (.) وشرطات (-).", morse_desc_2: "نستخدم الخرز الدائري للنقاط والخرز الطويل للشرطات.", morse_secret: "إنها رسالة سرية لا يفهمها إلا أنت!", spotlight: "معرض صور العملاء", spotlight_sub: "اضغط على أي صورة لشراء نفس المنتج!", your_cart: "سلة التسوق الخاصة بك", subtotal: "المجموع الفرعي", shipping: "مصاريف الشحن", shipping_banner: "🚚 شحن مجاني للطلبات فوق ١٠٠٠ ج.م!", free: "مجاني", total: "الإجمالي", clear_cart: "إفراغ السلة", proceed: "إتمام الشراء", checkout_title: "دفع آمن", full_name: "الاسم بالكامل", phone_1: "رقم الهاتف (١١ رقم)", phone_2: "رقم هاتف آخر (اختياري)", address_section: "عنوان التوصيل", gov_label: "المحافظة", district_label: "اسم المنطقة", street_label: "اسم الشارع", building_label: "رقم المبنى", floor_label: "رقم الدور", apt_label: "رقم الشقة", custom_title: "خصص رسالتك السرية", custom_hint: "اكتب الاسم لرؤية شكل شفرة مورس:", custom_limit: "(حد أقصى ١٠ حروف)", payment_section: "طريقة الدفع", pay_instapay: "انستاباي (Instapay)", pay_cod: "دفع عند الاستلام", instapay_instruction: "يرجى تحويل المبلغ الإجمالي إلى رقم انستاباي:", instapay_number: "٠١٢٨١٧٧٠٠٨٥", upload_receipt: "رفع صورة التحويل (سكرين شوت)", place_order: "تأكيد الطلب", contact_us: "اتصل بنا", send_msg: "إرسال الرسالة", footer_rights: "جميع الحقوق محفوظة.", back_shop: "العودة للمتجر", you_like: "قد يعجبك أيضاً", added_cart: "تمت الإضافة للسلة بنجاح", order_success_title: "تم الطلب بنجاح! 🎉", order_success_msg: "شكراً لك! لقد استلمنا طلبك وسنتواصل معك قريباً.", policy_link: "سياسة الاسترجاع والشحن", policy_title: "سياسة الاسترجاع والشحن", close: "إغلاق", fill_fields: "يرجى ملء جميع البيانات المطلوبة", phone_error: "يجب أن يتكون رقم الهاتف من ١١ رقماً", secure_checkout: "دفع آمن", easy_returns: "سهولة الاسترجاع", customer_support: "دعم فني"
   }
 };
 
 let currentUserId = null;
 const state = {
-  lang: 'en', 
-  page: 'home',
-  cart: [],
-  selectedProductId: null, 
-  searchQuery: '', 
-  showSuccessModal: false, 
-  showPolicyModal: false, 
-  paymentMethod: 'instapay', // 'instapay' or 'cod'
+  lang: 'en', page: 'home', cart: [], selectedProductId: null, searchQuery: '', showSuccessModal: false, showPolicyModal: false, paymentMethod: 'instapay',
   products: [
     { id: 1, name: 'Gold Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
     { id: 2, name: 'Gold Morse Code Bracelet', price: 550, originalPrice: 900, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
     { id: 3, name: 'Silver Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
     { id: 4, name: 'Silver Cord Bracelet Set', price: 550, originalPrice: 900, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
   ],
-  message: '',
-  messageType: 'success', 
-  isAuthReady: false,
+  message: '', messageType: 'success', isAuthReady: false,
 };
 
-// Shipping Constants
 const SHIPPING_COST = 100;
 const FREE_SHIPPING_THRESHOLD = 1000;
-// COD Fee is now 0 as requested
-const COD_FEE = 0; 
 
 function t(key) { return translations[state.lang][key] || key; }
-
-function nav(pageName) {
-    state.page = pageName;
-    render();
-    window.scrollTo(0,0);
-}
-
-function toggleLang() {
-  state.lang = state.lang === 'en' ? 'ar' : 'en';
-  document.body.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
-  if(state.lang === 'ar') document.body.classList.add('font-arabic');
-  else document.body.classList.remove('font-arabic');
-  render();
-}
-
+function nav(pageName) { state.page = pageName; render(); window.scrollTo(0,0); }
+function toggleLang() { state.lang = state.lang === 'en' ? 'ar' : 'en'; document.body.dir = state.lang === 'ar' ? 'rtl' : 'ltr'; if(state.lang === 'ar') document.body.classList.add('font-arabic'); else document.body.classList.remove('font-arabic'); render(); }
 function updateTitle() {
-  if (state.page === 'product_detail' && state.selectedProductId) {
-    const p = findProduct(state.selectedProductId);
-    document.title = state.lang === 'en' ? `Buy ${p.name} | Morse Jewelry` : `شراء ${p.name} | مورس للمجوهرات`;
-  } else {
-    document.title = state.lang === 'en' ? "Morse Jewelry | Express Yourself in Secret" : "مورس للمجوهرات | عبر عن نفسك بسرية";
-  }
+  if (state.page === 'product_detail' && state.selectedProductId) { const p = findProduct(state.selectedProductId); document.title = state.lang === 'en' ? `Buy ${p.name} | Morse Jewelry` : `شراء ${p.name} | مورس للمجوهرات`; } else { document.title = state.lang === 'en' ? "Morse Jewelry | Express Yourself in Secret" : "مورس للمجوهرات | عبر عن نفسك بسرية"; }
 }
 
-// ---------- Authentication ----------
-async function ensureAnonymousSignIn() {
-  onAuthStateChanged(auth, user => {
-    if (user) { currentUserId = user.uid; state.isAuthReady = true; render(); } 
-    else { signInAnonymously(auth).then(cred => { currentUserId = cred.user.uid; state.isAuthReady = true; render(); }); }
-  });
-}
+async function ensureAnonymousSignIn() { onAuthStateChanged(auth, user => { if (user) { currentUserId = user.uid; state.isAuthReady = true; render(); } else { signInAnonymously(auth).then(cred => { currentUserId = cred.user.uid; state.isAuthReady = true; render(); }); } }); }
 ensureAnonymousSignIn();
 
-// ---------- Utility ----------
 function findProduct(id) { return state.products.find(p=>p.id===Number(id)); }
-
-function addToCart(productId) {
-  const existing = state.cart.find(i => i.productId === productId);
-  if(existing) existing.quantity++;
-  else state.cart.push({productId, quantity:1});
-  flashMessage(t('added_cart'), 'success');
-  render();
-}
-
-function updateQuantity(productId, qty){
-  if(qty<=0) state.cart = state.cart.filter(i=>i.productId!==productId);
-  else { const item = state.cart.find(i=>i.productId===productId); if(item) item.quantity=qty; }
-  render();
-}
-
+function addToCart(productId) { const existing = state.cart.find(i => i.productId === productId); if(existing) existing.quantity++; else state.cart.push({productId, quantity:1}); flashMessage(t('added_cart'), 'success'); render(); }
+function updateQuantity(productId, qty){ if(qty<=0) state.cart = state.cart.filter(i=>i.productId!==productId); else { const item = state.cart.find(i=>i.productId===productId); if(item) item.quantity=qty; } render(); }
 function clearCart() { state.cart=[]; render(); }
+function cartItems() { return state.cart.map(ci=>{ const p=findProduct(ci.productId); if(!p) return null; return {...p, quantity: ci.quantity, subtotal: +(p.price*ci.quantity).toFixed(2)}; }).filter(Boolean); }
+function cartTotal() { const sub = cartItems().reduce((s,it)=>s+it.subtotal,0); if (sub === 0) return 0; const shipping = sub >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST; return sub + shipping; }
+function updatePaymentMethod(method) { state.paymentMethod = method; render(); }
+function translateToMorse(text) { return text.toLowerCase().split('').map(char => MORSE_CODE[char] || char).join(' '); }
 
-function cartItems() {
-  return state.cart.map(ci=>{
-    const p=findProduct(ci.productId);
-    if(!p) return null;
-    return {...p, quantity: ci.quantity, subtotal: +(p.price*ci.quantity).toFixed(2)};
-  }).filter(Boolean);
-}
-
-function cartTotal() { 
-  const sub = cartItems().reduce((s,it)=>s+it.subtotal,0);
-  if (sub === 0) return 0;
-  // Shipping logic
-  const shipping = sub >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
-  return sub + shipping; 
-}
-
-function updatePaymentMethod(method) {
-    state.paymentMethod = method;
-    render();
-}
-
-function translateToMorse(text) {
-  return text.toLowerCase().split('').map(char => MORSE_CODE[char] || char).join(' ');
-}
-
-// ---------- Notifications ----------
 let flashTimer = null;
-function flashMessage(msg, type='success', ms=3000){
-  state.message = msg;
-  state.messageType = type;
-  render();
-  if(flashTimer) clearTimeout(flashTimer);
-  flashTimer=setTimeout(()=>{state.message=''; render();}, ms);
-}
-
+function flashMessage(msg, type='success', ms=3000){ state.message = msg; state.messageType = type; render(); if(flashTimer) clearTimeout(flashTimer); flashTimer=setTimeout(()=>{state.message=''; render();}, ms); }
 function showSuccessModal() { state.showSuccessModal = true; render(); }
 function closeSuccessModal() { state.showSuccessModal = false; render(); }
 function togglePolicyModal() { state.showPolicyModal = !state.showPolicyModal; render(); }
+function viewProduct(id) { state.selectedProductId = Number(id); state.page = 'product_detail'; render(); window.scrollTo(0,0); }
+function handleSearch(evt) { state.searchQuery = evt.target.value.toLowerCase(); if(state.page !== 'home') { state.page = 'home'; } render(); }
 
-function viewProduct(id) {
-  state.selectedProductId = Number(id);
-  state.page = 'product_detail';
-  render();
-  window.scrollTo(0,0);
-}
-
-function handleSearch(evt) {
-  state.searchQuery = evt.target.value.toLowerCase();
-  if(state.page !== 'home') { state.page = 'home'; }
-  render(); 
-}
-
-// ---------- Backend Functions ----------
-async function uploadReceiptImage(file) {
-    if(!file) return null;
-    try {
-        const storageRef = ref(storage, `receipts/${currentUserId}_${Date.now()}_${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(snapshot.ref);
-        return url;
-    } catch(e) {
-        console.error("Upload failed", e);
-        return null;
-    }
-}
+// --- Helper: Convert File to Base64 for Google Script ---
+const toBase64 = file => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+});
 
 async function submitOrderToFirestore(orderData){
   if(!currentUserId){ flashMessage('Auth not ready', 'error'); return false; }
+  
+  // 1. Send data to Google Sheets (Includes Base64 Image)
+  if(GOOGLE_SCRIPT_URL) {
+     try {
+       // 'no-cors' means we can't read the response, but the data is sent.
+       await fetch(GOOGLE_SCRIPT_URL, { 
+         method: "POST", 
+         mode: "no-cors", 
+         headers: { "Content-Type": "application/json" }, 
+         body: JSON.stringify(orderData) 
+       });
+     } catch(e) {
+       console.error("Sheet Upload Error", e);
+     }
+  }
+
+  // 2. Send data to Firestore (Remove large image data first)
   try{ 
-    await addDoc(collection(db,'orders'), {...orderData,userId:currentUserId,timestamp:serverTimestamp()}); 
-    if(GOOGLE_SCRIPT_URL) {
-       fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(orderData) }).catch(e => console.error(e));
-    }
+    const firestoreData = { ...orderData };
+    delete firestoreData.receiptImage; // Don't save base64 to Firestore
+    firestoreData.receiptLocation = "Saved to Google Drive via Script";
+    
+    await addDoc(collection(db,'orders'), {...firestoreData, userId:currentUserId, timestamp:serverTimestamp()}); 
     return true; 
   }
-  catch(e){ console.error(e); flashMessage('Order failed: ' + e.message, 'error'); return false; }
+  catch(e){ console.error(e); flashMessage('Order failed locally', 'error'); return false; }
 }
 
-async function submitContactToFirestore(contactData){
-  if(!currentUserId){ flashMessage('Auth not ready', 'error'); return false; }
-  try{ await addDoc(collection(db,'contact_messages'), {...contactData,userId:currentUserId,timestamp:serverTimestamp()}); flashMessage(t('send_msg') + ' success', 'success'); return true; }
-  catch(e){ console.error(e); flashMessage('Failed', 'error'); return false; }
-}
+async function submitContactToFirestore(contactData){ if(!currentUserId){ flashMessage('Auth not ready', 'error'); return false; } try{ await addDoc(collection(db,'contact_messages'), {...contactData,userId:currentUserId,timestamp:serverTimestamp()}); flashMessage(t('send_msg') + ' success', 'success'); return true; } catch(e){ console.error(e); flashMessage('Failed', 'error'); return false; } }
 
-// ---------- DOM ----------
 const root = document.getElementById('root');
 function escapeHtml(str){ if(!str) return ''; return String(str).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
 
@@ -376,12 +166,8 @@ function escapeHtml(str){ if(!str) return ''; return String(str).replace(/[&<>"'
 function renderNavbar(){
   const cartCount = state.cart.reduce((s,i)=>s+i.quantity,0);
   const langLabel = state.lang === 'en' ? '🌐 AR' : '🌐 EN';
-  
   return `
-  <div class="bg-gray-900 text-white text-sm font-bold text-center py-3 tracking-wide">
-    ${t('shipping_banner')}
-  </div>
-
+  <div class="bg-gray-900 text-white text-sm font-bold text-center py-3 tracking-wide">${t('shipping_banner')}</div>
   <nav class="bg-white shadow sticky top-0 z-20">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
       <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
@@ -398,19 +184,12 @@ function renderNavbar(){
         </div>
       </div>
       <div class="flex items-center gap-4 w-full md:w-auto">
-        <div class="relative flex-1 md:flex-none">
-            <input type="text" placeholder="${t('search_placeholder')}" value="${state.searchQuery}" oninput="window._app.handleSearch(event)"
-                class="w-full md:w-48 pl-3 pr-8 py-1.5 rounded-full border border-gray-300 focus:outline-none focus:border-pink-500 text-sm transition-all focus:w-full md:focus:w-64">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-        </div>
+        <div class="relative flex-1 md:flex-none"><input type="text" placeholder="${t('search_placeholder')}" value="${state.searchQuery}" oninput="window._app.handleSearch(event)" class="w-full md:w-48 pl-3 pr-8 py-1.5 rounded-full border border-gray-300 focus:outline-none focus:border-pink-500 text-sm transition-all focus:w-full md:focus:w-64"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></div>
         <div class="hidden md:flex items-center gap-4">
             <button onclick="window._app.nav('home')" class="text-sm font-medium text-gray-700 hover:text-pink-600 uppercase cursor-pointer">${t('shop')}</button>
             <button onclick="window._app.nav('gallery')" class="text-sm font-medium text-gray-700 hover:text-pink-600 cursor-pointer">${t('gallery')}</button>
             <button onclick="window._app.toggleLang()" class="px-2 py-1 border rounded text-xs hover:bg-gray-100 font-bold text-pink-600">${langLabel}</button>
-            <button onclick="window._app.nav('cart')" class="relative p-2 text-gray-700 hover:text-pink-600">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" /></svg>
-              ${cartCount ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">${cartCount}</span>` : ''}
-            </button>
+            <button onclick="window._app.nav('cart')" class="relative p-2 text-gray-700 hover:text-pink-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" /></svg>${cartCount ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">${cartCount}</span>` : ''}</button>
         </div>
       </div>
     </div>
@@ -430,10 +209,7 @@ function renderHome(){
             <p class="text-pink-600 font-medium italic">${t('morse_secret')}</p>
         </div>
     </div>
-    <div class="text-center mb-8">
-        <h1 class="text-2xl md:text-4xl font-extrabold text-gray-900 mb-2">${t('hero_title')}</h1>
-        <p class="text-sm md:text-lg text-gray-600">${t('hero_sub')}</p>
-    </div>
+    <div class="text-center mb-8"><h1 class="text-2xl md:text-4xl font-extrabold text-gray-900 mb-2">${t('hero_title')}</h1><p class="text-sm md:text-lg text-gray-600">${t('hero_sub')}</p></div>
     <h2 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2">${t('collection')}</h2>
     ${filteredProducts.length === 0 ? `<div class="text-center text-gray-500 py-12">No products found matching "${state.searchQuery}"</div>` : ''}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
@@ -459,10 +235,7 @@ function renderProductDetail() {
   <section class="py-8 px-4 max-w-7xl mx-auto">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-        <div class="mb-6">
-          <button onclick="window._app.nav('home')" class="text-gray-500 hover:text-pink-600 mb-4 inline-flex items-center gap-1">${state.lang==='ar' ? '&rarr;' : '&larr;'} ${t('back_shop')}</button>
-          <img src="${escapeHtml(mainProduct.image)}" alt="${escapeHtml(mainProduct.name)}" class="w-full h-96 object-cover rounded-lg shadow-sm">
-        </div>
+        <div class="mb-6"><button onclick="window._app.nav('home')" class="text-gray-500 hover:text-pink-600 mb-4 inline-flex items-center gap-1">${state.lang==='ar' ? '&rarr;' : '&larr;'} ${t('back_shop')}</button><img src="${escapeHtml(mainProduct.image)}" alt="${escapeHtml(mainProduct.name)}" class="w-full h-96 object-cover rounded-lg shadow-sm"></div>
         <h1 class="text-3xl font-extrabold text-gray-900 mb-2">${escapeHtml(mainProduct.name)}</h1>
         <p class="text-gray-600 mb-6 text-lg leading-relaxed">${escapeHtml(mainProduct.description)}</p>
         <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
@@ -525,7 +298,6 @@ function renderCart(){
 
 function renderCheckout(){
   const items = cartItems();
-  const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
   const total = cartTotal();
 
   if(items.length===0) return `<section class="py-12 px-4 max-w-2xl mx-auto text-center"><p class="text-lg">${t('cart_empty')}</p><div class="mt-4"><button class="px-4 py-2 bg-pink-600 text-white rounded" onclick="window._app.nav('home')">${t('shop_now')}</button></div></section>`;
@@ -547,19 +319,13 @@ function renderCheckout(){
       <div class="bg-white p-6 rounded shadow">
         <h3 class="font-bold text-lg mb-4 border-b pb-2">2. ${t('address_section')}</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
             <div><label class="block text-sm font-medium text-gray-700">${t('building_label')}</label><input name="building" required class="mt-1 block w-full p-2 border rounded" /></div>
             <div><label class="block text-sm font-medium text-gray-700">${t('street_label')}</label><input name="street" required class="mt-1 block w-full p-2 border rounded" /></div>
-            
             <div><label class="block text-sm font-medium text-gray-700">${t('district_label')}</label><input name="district" required class="mt-1 block w-full p-2 border rounded" placeholder="e.g. Maadi" /></div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">${t('gov_label')}</label>
-                <select name="gov" required class="mt-1 block w-full p-2 border rounded bg-white">
-                    <option value="">Select...</option>
-                    ${GOVERNORATES.map(g => `<option value="${g}">${g}</option>`).join('')}
-                </select>
+                <select name="gov" required class="mt-1 block w-full p-2 border rounded bg-white"><option value="">Select...</option>${GOVERNORATES.map(g => `<option value="${g}">${g}</option>`).join('')}</select>
             </div>
-
             <div><label class="block text-sm font-medium text-gray-700">${t('floor_label')}</label><input name="floor" required class="mt-1 block w-full p-2 border rounded" /></div>
             <div><label class="block text-sm font-medium text-gray-700">${t('apt_label')}</label><input name="apt" required class="mt-1 block w-full p-2 border rounded" /></div>
         </div>
@@ -576,76 +342,48 @@ function renderCheckout(){
       <div class="bg-white p-6 rounded shadow">
         <h3 class="font-bold text-lg mb-4 border-b pb-2">4. ${t('payment_section')}</h3>
         <div class="space-y-3">
-            
             <label class="flex items-center space-x-3 cursor-pointer p-3 border rounded ${state.paymentMethod==='instapay'?'border-pink-500 bg-pink-50':''}" onclick="window._app.updatePaymentMethod('instapay')">
                 <input type="radio" name="payment" value="instapay" ${state.paymentMethod==='instapay'?'checked':''} class="h-5 w-5 text-pink-600">
-                <span class="font-medium flex items-center gap-2">
-                    <img src="https://instapay.eg/assets/images/logo.png" class="h-6 w-auto" alt="Instapay" onerror="this.style.display='none'"/> 
-                    ${t('pay_instapay')}
-                </span>
+                <span class="font-medium flex items-center gap-2"><img src="https://instapay.eg/assets/images/logo.png" class="h-6 w-auto" alt="Instapay" onerror="this.style.display='none'"/> ${t('pay_instapay')}</span>
             </label>
-
             <label class="flex items-center space-x-3 cursor-pointer p-3 border rounded ${state.paymentMethod==='cod'?'border-pink-500 bg-pink-50':''}" onclick="window._app.updatePaymentMethod('cod')">
                 <input type="radio" name="payment" value="cod" ${state.paymentMethod==='cod'?'checked':''} class="h-5 w-5 text-pink-600">
                 <span class="font-medium">${t('pay_cod')}</span>
             </label>
         </div>
-
         <div class="mt-4 p-4 border rounded bg-gray-50">
             ${state.paymentMethod === 'instapay' ? `
                 <div class="text-center space-y-4">
                     <p class="text-sm font-medium text-gray-700">${t('instapay_instruction')}</p>
                     <div class="text-2xl font-bold text-pink-600 tracking-wider">${t('instapay_number')}</div>
-                    
                     <div class="mt-2 border-t pt-4">
                         <label class="block text-sm font-bold text-gray-700 mb-2">${t('upload_receipt')}</label>
                         <input type="file" name="receipt" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100" />
                     </div>
                 </div>
-            ` : `
-                <p class="text-sm text-gray-600 text-center">Prepare the exact amount (${total.toFixed(2)} EGP) for the courier.</p>
-            `}
+            ` : `<p class="text-sm text-gray-600 text-center">Prepare the exact amount (${total.toFixed(2)} EGP) for the courier.</p>`}
         </div>
       </div>
 
       <div class="bg-gray-50 p-6 rounded shadow border-t-4 border-pink-600">
-        <div class="flex justify-between items-center text-xl font-bold mb-4">
-            <span>${t('total')}</span>
-            <span class="text-pink-600">${total.toFixed(2)} ${t('original_price')}</span>
-        </div>
+        <div class="flex justify-between items-center text-xl font-bold mb-4"><span>${t('total')}</span><span class="text-pink-600">${total.toFixed(2)} ${t('original_price')}</span></div>
         <button type="submit" class="w-full py-4 bg-green-600 text-white rounded text-lg font-bold hover:bg-green-700 shadow-lg">${t('place_order')}</button>
         <div class="flex justify-center gap-4 mt-4 text-xs text-gray-500">
             <div class="flex items-center gap-1"><span class="text-lg">🔒</span> ${t('secure_checkout')}</div>
             <div class="flex items-center gap-1"><span class="text-lg">✅</span> ${t('easy_returns')}</div>
         </div>
       </div>
-
     </form>
   </section>`;
 }
 
-function renderContact(){
-  return `
-  <section class="py-12 px-4 max-w-xl mx-auto">
-    <h2 class="text-3xl font-bold mb-4 text-center">${t('contact_us')}</h2>
-    <form id="contact-form" class="bg-white p-6 rounded shadow space-y-4" onsubmit="window._app.handleContactSubmit(event)">
-      <input name="name" placeholder="${t('full_name')}" required class="w-full p-2 border rounded" />
-      <input name="phone" type="tel" placeholder="${t('phone_1')}" required class="w-full p-2 border rounded" />
-      <textarea name="message" placeholder="Message..." required class="w-full p-2 border rounded"></textarea>
-      <div class="text-center"><button type="submit" class="px-6 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">${t('send_msg')}</button></div>
-    </form>
-  </section>`;
-}
+function renderContact(){ return `<section class="py-12 px-4 max-w-xl mx-auto"><h2 class="text-3xl font-bold mb-4 text-center">${t('contact_us')}</h2><form id="contact-form" class="bg-white p-6 rounded shadow space-y-4" onsubmit="window._app.handleContactSubmit(event)"><input name="name" placeholder="${t('full_name')}" required class="w-full p-2 border rounded" /><input name="phone" type="tel" placeholder="${t('phone_1')}" required class="w-full p-2 border rounded" /><textarea name="message" placeholder="Message..." required class="w-full p-2 border rounded"></textarea><div class="text-center"><button type="submit" class="px-6 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">${t('send_msg')}</button></div></form></section>`; }
 
 function renderFooter(){
   return `
   <footer class="bg-gray-800 text-white py-8 mt-8">
     <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-      <div class="text-center md:text-left">
-        <h4 class="text-xl font-bold">${t('title')}</h4>
-        <div class="text-sm text-gray-400 mt-1">&copy; 2025 ${t('footer_rights')}</div>
-        <button onclick="window._app.togglePolicyModal()" class="text-xs text-pink-400 hover:text-pink-300 mt-2 underline">${t('policy_link')}</button>
-      </div>
+      <div class="text-center md:text-left"><h4 class="text-xl font-bold">${t('title')}</h4><div class="text-sm text-gray-400 mt-1">&copy; 2025 ${t('footer_rights')}</div><button onclick="window._app.togglePolicyModal()" class="text-xs text-pink-400 hover:text-pink-300 mt-2 underline">${t('policy_link')}</button></div>
       <div class="flex flex-col items-center md:items-end gap-3">
         <p class="font-semibold mb-1">Socials:</p>
         <a href="https://wa.me/201281770085" target="_blank" class="flex items-center gap-2 hover:text-green-400"><span>WhatsApp: +201281770085</span></a>
@@ -655,42 +393,14 @@ function renderFooter(){
   </footer>`;
 }
 
-function renderSuccessModal() {
-  if (!state.showSuccessModal) return '';
-  return `
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center modal-fade-in border-4 border-green-100">
-      <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6"><svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div>
-      <h3 class="text-2xl font-bold text-gray-900 mb-2">${t('order_success_title')}</h3>
-      <p class="text-gray-600 mb-8">${t('order_success_msg')}</p>
-      <button onclick="window._app.closeSuccessModal()" class="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition transform hover:scale-105">${t('close')}</button>
-    </div>
-  </div>`;
-}
+function renderSuccessModal() { if (!state.showSuccessModal) return ''; return `<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"><div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center modal-fade-in border-4 border-green-100"><div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6"><svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div><h3 class="text-2xl font-bold text-gray-900 mb-2">${t('order_success_title')}</h3><p class="text-gray-600 mb-8">${t('order_success_msg')}</p><button onclick="window._app.closeSuccessModal()" class="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition transform hover:scale-105">${t('close')}</button></div></div>`; }
 
-function renderPolicyModal() {
-  if (!state.showPolicyModal) return '';
-  return `
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
-    <div class="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full modal-fade-in relative overflow-y-auto max-h-[80vh]">
-      <button onclick="window._app.togglePolicyModal()" class="absolute top-4 right-4 text-gray-500 hover:text-black font-bold text-xl">&times;</button>
-      <h3 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">${t('policy_title')}</h3>
-      <div class="text-gray-700 space-y-4 text-sm leading-relaxed">
-        <p><strong>1. Delivery:</strong> Standard delivery takes 3-5 business days. Expedited shipping is available upon request.</p>
-        <p><strong>2. Returns:</strong> Since our jewelry is personalized with Morse Code, returns are only accepted if the product arrives damaged or with an error in the encoding.</p>
-        <p><strong>3. Repairs:</strong> We offer a 30-day warranty on cords and clasps.</p>
-        <p><strong>4. Payment:</strong> We accept Instapay (send receipt) and Cash on Delivery.</p>
-      </div>
-      <button onclick="window._app.togglePolicyModal()" class="w-full mt-6 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">${t('close')}</button>
-    </div>
-  </div>`;
-}
+function renderPolicyModal() { if (!state.showPolicyModal) return ''; return `<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"><div class="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full modal-fade-in relative overflow-y-auto max-h-[80vh]"><button onclick="window._app.togglePolicyModal()" class="absolute top-4 right-4 text-gray-500 hover:text-black font-bold text-xl">&times;</button><h3 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">${t('policy_title')}</h3><div class="text-gray-700 space-y-4 text-sm leading-relaxed"><p><strong>1. Delivery:</strong> Standard delivery takes 3-5 business days. Expedited shipping is available upon request.</p><p><strong>2. Returns:</strong> Since our jewelry is personalized with Morse Code, returns are only accepted if the product arrives damaged or with an error in the encoding.</p><p><strong>3. Repairs:</strong> We offer a 30-day warranty on cords and clasps.</p><p><strong>4. Payment:</strong> We accept Instapay (send receipt) and Cash on Delivery.</p></div><button onclick="window._app.togglePolicyModal()" class="w-full mt-6 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">${t('close')}</button></div></div>`; }
 
 function render(){
   updateTitle();
   const readyClass = state.isAuthReady?'visible-ready':'hidden-until-ready';
   root.className=readyClass;
-
   let content = '';
   if (state.page === 'home') content = renderHome();
   else if (state.page === 'gallery') content = renderGallery();
@@ -698,20 +408,8 @@ function render(){
   else if (state.page === 'cart') content = renderCart();
   else if (state.page === 'checkout') content = renderCheckout();
   else if (state.page === 'product_detail') content = renderProductDetail();
-
   const flashColorClass = state.messageType === 'success' ? 'bg-green-600' : 'bg-red-600';
-
-  root.innerHTML=`
-    <div class="min-h-screen flex flex-col">
-      ${renderNavbar()}
-      <main class="flex-1 bg-gray-50">${content}</main>
-      ${renderFooter()}
-      ${state.message ? `<div id="flash" class="flash-slide-in fixed top-6 left-1/2 transform -translate-x-1/2 ${flashColorClass} text-white px-8 py-3 rounded-full shadow-lg z-50 text-center font-medium">${escapeHtml(state.message)}</div>` : ''}
-      ${renderSuccessModal()}
-      ${renderPolicyModal()}
-    </div>
-  `;
-  
+  root.innerHTML=`<div class="min-h-screen flex flex-col">${renderNavbar()}<main class="flex-1 bg-gray-50">${content}</main>${renderFooter()}${state.message ? `<div id="flash" class="flash-slide-in fixed top-6 left-1/2 transform -translate-x-1/2 ${flashColorClass} text-white px-8 py-3 rounded-full shadow-lg z-50 text-center font-medium">${escapeHtml(state.message)}</div>` : ''}${renderSuccessModal()}${renderPolicyModal()}</div>`;
   document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ const id=Number(input.getAttribute('data-cart-qty')); const value=parseInt(input.value)||0; updateQuantity(id,value); });
   const clearBtn = document.getElementById('btn-clear-cart'); if(clearBtn) clearBtn.onclick=clearCart;
 }
@@ -719,14 +417,10 @@ function render(){
 async function handleCheckoutSubmit(evt){
   evt.preventDefault();
   const form = evt.target;
-  
-  // Basic Fields
   const name = form.name.value.trim();
   const phone1 = form.phone1.value.trim();
   const phone2 = form.phone2.value.trim();
   const customText = form.custom_text.value.trim();
-  
-  // Address Order: Building, Street, Area, Gov, Floor, Apt
   const building = form.building.value.trim();
   const street = form.street.value.trim();
   const district = form.district.value.trim();
@@ -735,52 +429,29 @@ async function handleCheckoutSubmit(evt){
   const apt = form.apt.value.trim();
   
   const fullAddress = `Bldg ${building}, ${street}, ${district}, ${gov}, Fl ${floor}, Apt ${apt}`;
-
   const phoneRegex = /^\d{11}$/;
   if (!phoneRegex.test(phone1)) { flashMessage(t('phone_error'), 'error'); return; }
   if(!name || !phone1 || !gov || !district || !street || !building || !floor || !apt || !customText){ flashMessage(t('fill_fields'), 'error'); return; }
 
-  // Check Receipt for Instapay
-  let receiptUrl = null;
+  let receiptBase64 = null;
   if(state.paymentMethod === 'instapay') {
       const fileInput = form.receipt;
       if(fileInput && fileInput.files.length > 0) {
-          flashMessage('Uploading receipt...', 'success', 2000);
-          receiptUrl = await uploadReceiptImage(fileInput.files[0]);
-          if(!receiptUrl) {
-              flashMessage('Failed to upload receipt image. Please try again.', 'error');
-              return;
-          }
-      } else {
-          // If no file, we might want to warn or proceed with text only
-          // Let's require it for now as per "upload photo" request
-          flashMessage('Please upload the payment receipt', 'error');
-          return;
-      }
+          const file = fileInput.files[0];
+          if (file.size > 4 * 1024 * 1024) { flashMessage('File too large. Max 4MB', 'error'); return; }
+          flashMessage('Processing receipt...', 'success', 1000);
+          try { receiptBase64 = await toBase64(file); } catch(e) { flashMessage('Error reading file', 'error'); return; }
+      } else { flashMessage('Please upload the payment receipt', 'error'); return; }
   }
 
   const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
   let shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
-  let finalTotal = subtotal + shippingFee; // COD Fee is 0
+  let finalTotal = subtotal + shippingFee; 
 
-  const orderData = { 
-      name, phone1, phone2, 
-      address: fullAddress, 
-      customText, 
-      items: cartItems(), 
-      totalPrice: finalTotal, 
-      shippingFee, 
-      paymentMethod: state.paymentMethod,
-      receiptUrl: receiptUrl, // Stores the image URL
-      currency: 'EGP' 
-  };
+  const orderData = { name, phone1, phone2, address: fullAddress, customText, items: cartItems(), totalPrice: finalTotal, shippingFee, paymentMethod: state.paymentMethod, receiptImage: receiptBase64, currency: 'EGP' };
   
   const success = await submitOrderToFirestore(orderData);
-  if(success){ 
-    clearCart(); 
-    state.page='home'; 
-    showSuccessModal(); 
-  }
+  if(success){ clearCart(); state.page='home'; showSuccessModal(); }
 }
 
 async function handleContactSubmit(evt){
