@@ -7,11 +7,9 @@
   <title>Morse Jewelry | Express Yourself in Secret</title>
   <meta property="og:title" content="Morse Jewelry - Personalized Secret Messages" />
   <meta property="og:description" content="Convert any name or word into beautiful handmade jewelry using Morse code." />
-  
   <meta property="og:image" content="./morse_logo_transparent.png" />
   
   <script src="https://cdn.tailwindcss.com"></script>
-
   <link rel="icon" href="./morse_logo_transparent.png" type="image/png">
 
   <style>
@@ -19,7 +17,6 @@
     .hidden-until-ready { opacity: 0; transition: opacity .25s ease-in; }
     .visible-ready { opacity: 1; }
     
-    /* Animations */
     .flash-slide-in { animation: slideIn 0.5s ease-out forwards; }
     @keyframes slideIn { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
     
@@ -29,6 +26,23 @@
     /* Arabic Font */
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
     .font-arabic { font-family: 'Cairo', sans-serif; }
+
+    /* Apple Pay Button Style */
+    .apple-pay-button {
+      background-color: black;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-block;
+      width: 100%;
+      height: 44px;
+      line-height: 44px;
+      text-align: center;
+      font-weight: 500;
+      font-size: 16px;
+      transition: background-color 0.2s;
+    }
+    .apple-pay-button:hover { background-color: #333; }
   </style>
 </head>
 <body class="bg-gray-50 transition-all duration-300">
@@ -58,13 +72,15 @@ try { getAnalytics(app); } catch(e) { console.info("Analytics init skipped:", e?
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Your Google Sheet
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuMlTdvd8sJYjNni9vvFEXsgtk8nLjCNqpbDYyjGmMnBX22EK7l3DT86vGnCtCtQyF/exec";
 
 // Morse Dictionary
-const MORSE_CODE = { 
-  'a': '.-', 'b': '-...', 'c': '-.-.', 'd': '-..', 'e': '.', 'f': '..-.', 'g': '--.', 'h': '....', 'i': '..', 'j': '.---', 'k': '-.-', 'l': '.-..', 'm': '--', 'n': '-.', 'o': '---', 'p': '.--.', 'q': '--.-', 'r': '.-.', 's': '...', 't': '-', 'u': '..-', 'v': '...-', 'w': '.--', 'x': '-..-', 'y': '-.--', 'z': '--..', '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----', ' ': ' / ' 
-};
+const MORSE_CODE = { 'a': '.-', 'b': '-...', 'c': '-.-.', 'd': '-..', 'e': '.', 'f': '..-.', 'g': '--.', 'h': '....', 'i': '..', 'j': '.---', 'k': '-.-', 'l': '.-..', 'm': '--', 'n': '-.', 'o': '---', 'p': '.--.', 'q': '--.-', 'r': '.-.', 's': '...', 't': '-', 'u': '..-', 'v': '...-', 'w': '.--', 'x': '-..-', 'y': '-.--', 'z': '--..', '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----', ' ': ' / ' };
+
+// Egyptian Governorates
+const GOVERNORATES = [
+  "Cairo", "Giza", "Alexandria", "Dakahlia", "Red Sea", "Beheira", "Fayoum", "Gharbiya", "Ismailia", "Menofia", "Minya", "Qaliubiya", "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said", "Damietta", "Sharkia", "South Sinai", "Kafr Al Sheikh", "Matrouh", "Luxor", "Qena", "North Sinai", "Sohag"
+];
 
 // Translations
 const translations = {
@@ -91,19 +107,29 @@ const translations = {
     your_cart: "Your Shopping Cart",
     subtotal: "Subtotal",
     shipping: "Shipping Fees",
+    cod_fee: "Cash on Delivery Fee",
     shipping_banner: "🚚 Free shipping on orders over 1000 EGP!",
     free: "FREE", 
     total: "Total",
     clear_cart: "Clear Cart",
     proceed: "Proceed to Checkout",
-    checkout_title: "Checkout",
+    checkout_title: "Secure Checkout",
     full_name: "Full Name",
     phone_1: "Phone Number (11 digits)",
     phone_2: "Backup Phone (Optional)",
-    address: "Shipping Address",
+    address_section: "Delivery Address",
+    gov_label: "Governorate",
+    district_label: "District / Area",
+    street_label: "Street Name",
+    building_label: "Building No.",
+    floor_label: "Floor / Apt No.",
     custom_title: "Personalize Your Secret Message",
     custom_hint: "Type your name to see the Morse preview:",
     custom_limit: "(Up to 10 characters)",
+    payment_section: "Payment Method",
+    pay_card: "Credit / Debit Card",
+    pay_apple: "Apple Pay",
+    pay_cod: "Cash on Delivery (+10 EGP)",
     place_order: "Place Order",
     contact_us: "Contact Us",
     send_msg: "Send Message",
@@ -112,7 +138,9 @@ const translations = {
     you_like: "You might also like",
     added_cart: "Added to cart successfully",
     order_success_title: "Order Successful! 🎉",
-    order_success_msg: "Thank you for your order. We have received it and will contact you shortly to confirm details.",
+    order_success_msg: "Thank you! We have received your order and will contact you shortly.",
+    policy_link: "Return & Delivery Policy",
+    policy_title: "Return & Delivery Policy",
     close: "Close",
     fill_fields: "Please fill all required fields",
     phone_error: "Phone number must be exactly 11 digits",
@@ -143,19 +171,29 @@ const translations = {
     your_cart: "سلة التسوق الخاصة بك",
     subtotal: "المجموع الفرعي",
     shipping: "مصاريف الشحن",
+    cod_fee: "رسوم الدفع عند الاستلام",
     shipping_banner: "🚚 شحن مجاني للطلبات فوق ١٠٠٠ ج.م!",
     free: "مجاني", 
     total: "الإجمالي",
     clear_cart: "إفراغ السلة",
     proceed: "إتمام الشراء",
-    checkout_title: "الدفع",
+    checkout_title: "دفع آمن",
     full_name: "الاسم بالكامل",
     phone_1: "رقم الهاتف (١١ رقم)",
     phone_2: "رقم هاتف آخر (اختياري)",
-    address: "عنوان الشحن بالتفصيل",
+    address_section: "عنوان التوصيل",
+    gov_label: "المحافظة",
+    district_label: "المنطقة / الحي",
+    street_label: "اسم الشارع",
+    building_label: "رقم المبنى",
+    floor_label: "الدور / الشقة",
     custom_title: "خصص رسالتك السرية",
     custom_hint: "اكتب الاسم لرؤية شكل شفرة مورس:",
     custom_limit: "(حد أقصى ١٠ حروف)",
+    payment_section: "طريقة الدفع",
+    pay_card: "بطاقة بنكية",
+    pay_apple: "Apple Pay",
+    pay_cod: "دفع عند الاستلام (+١٠ ج.م)",
     place_order: "تأكيد الطلب",
     contact_us: "اتصل بنا",
     send_msg: "إرسال الرسالة",
@@ -164,7 +202,9 @@ const translations = {
     you_like: "قد يعجبك أيضاً",
     added_cart: "تمت الإضافة للسلة بنجاح",
     order_success_title: "تم الطلب بنجاح! 🎉",
-    order_success_msg: "شكراً لطلبك. لقد استلمنا الطلب وسنتواصل معك قريباً لتأكيد التفاصيل.",
+    order_success_msg: "شكراً لك! لقد استلمنا طلبك وسنتواصل معك قريباً.",
+    policy_link: "سياسة الاسترجاع والشحن",
+    policy_title: "سياسة الاسترجاع والشحن",
     close: "إغلاق",
     fill_fields: "يرجى ملء جميع البيانات المطلوبة",
     phone_error: "يجب أن يتكون رقم الهاتف من ١١ رقماً",
@@ -182,6 +222,8 @@ const state = {
   selectedProductId: null, 
   searchQuery: '', 
   showSuccessModal: false, 
+  showPolicyModal: false, // New: Policy Modal
+  paymentMethod: 'card', // 'card', 'apple', 'cod'
   products: [
     { id: 1, name: 'Gold Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
     { id: 2, name: 'Gold Morse Code Bracelet', price: 550, originalPrice: 900, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
@@ -193,9 +235,9 @@ const state = {
   isAuthReady: false,
 };
 
-// Shipping Constants
 const SHIPPING_COST = 100;
 const FREE_SHIPPING_THRESHOLD = 1000;
+const COD_FEE = 10;
 
 function t(key) { return translations[state.lang][key] || key; }
 
@@ -258,12 +300,24 @@ function cartItems() {
   }).filter(Boolean);
 }
 
-// Shipping Logic
+// Payment & Total Logic
 function cartTotal() { 
   const sub = cartItems().reduce((s,it)=>s+it.subtotal,0);
   if (sub === 0) return 0;
-  if (sub >= FREE_SHIPPING_THRESHOLD) return sub; 
-  return sub + SHIPPING_COST; 
+  let total = sub;
+  
+  // Shipping
+  if (sub < FREE_SHIPPING_THRESHOLD) total += SHIPPING_COST;
+  
+  // COD Fee
+  if (state.paymentMethod === 'cod') total += COD_FEE;
+  
+  return total; 
+}
+
+function updatePaymentMethod(method) {
+    state.paymentMethod = method;
+    render();
 }
 
 function translateToMorse(text) {
@@ -282,6 +336,7 @@ function flashMessage(msg, type='success', ms=3000){
 
 function showSuccessModal() { state.showSuccessModal = true; render(); }
 function closeSuccessModal() { state.showSuccessModal = false; render(); }
+function togglePolicyModal() { state.showPolicyModal = !state.showPolicyModal; render(); }
 
 function viewProduct(id) {
   state.selectedProductId = Number(id);
@@ -292,9 +347,7 @@ function viewProduct(id) {
 
 function handleSearch(evt) {
   state.searchQuery = evt.target.value.toLowerCase();
-  if(state.page !== 'home') {
-      state.page = 'home';
-  }
+  if(state.page !== 'home') { state.page = 'home'; }
   render(); 
 }
 
@@ -333,13 +386,11 @@ function renderNavbar(){
 
   <nav class="bg-white shadow sticky top-0 z-20">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
-      
       <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
         <div class="flex items-center gap-2 cursor-pointer" onclick="window._app.nav('home')">
             <img src="./morse_logo_transparent.png" alt="Logo" class="h-10 md:h-16 w-auto object-contain">
             <span class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">${t('title')}</span>
         </div>
-        
         <div class="flex items-center gap-2 md:hidden">
             <button onclick="window._app.toggleLang()" class="px-2 py-1 border rounded text-xs font-bold text-pink-600">${langLabel}</button>
             <button onclick="window._app.nav('cart')" class="relative p-2 text-gray-700">
@@ -348,41 +399,30 @@ function renderNavbar(){
             </button>
         </div>
       </div>
-
       <div class="flex items-center gap-4 w-full md:w-auto">
-        
         <div class="relative flex-1 md:flex-none">
-            <input type="text" placeholder="${t('search_placeholder')}" 
-                value="${state.searchQuery}"
-                oninput="window._app.handleSearch(event)"
-                class="w-full md:w-48 pl-3 pr-8 py-1.5 rounded-full border border-gray-300 focus:outline-none focus:border-pink-500 text-sm transition-all focus:w-full md:focus:w-64"
-            >
+            <input type="text" placeholder="${t('search_placeholder')}" value="${state.searchQuery}" oninput="window._app.handleSearch(event)"
+                class="w-full md:w-48 pl-3 pr-8 py-1.5 rounded-full border border-gray-300 focus:outline-none focus:border-pink-500 text-sm transition-all focus:w-full md:focus:w-64">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
         </div>
-
         <div class="hidden md:flex items-center gap-4">
             <button onclick="window._app.nav('home')" class="text-sm font-medium text-gray-700 hover:text-pink-600 uppercase cursor-pointer">${t('shop')}</button>
             <button onclick="window._app.nav('gallery')" class="text-sm font-medium text-gray-700 hover:text-pink-600 cursor-pointer">${t('gallery')}</button>
             <button onclick="window._app.toggleLang()" class="px-2 py-1 border rounded text-xs hover:bg-gray-100 font-bold text-pink-600">${langLabel}</button>
             <button onclick="window._app.nav('cart')" class="relative p-2 text-gray-700 hover:text-pink-600">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
-              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" /></svg>
               ${cartCount ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">${cartCount}</span>` : ''}
             </button>
         </div>
       </div>
-
     </div>
   </nav>`;
 }
 
 function renderHome(){
   const filteredProducts = state.products.filter(p => p.name.toLowerCase().includes(state.searchQuery));
-
   return `
   <section class="py-6 px-4 max-w-7xl mx-auto">
-    
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-12 mb-12 flex flex-col md:flex-row items-center gap-8">
         <div class="flex-1 w-full"><img src="./morse_code.png" alt="Morse Code" class="w-full rounded-xl shadow-md object-cover"></div>
         <div class="flex-1 space-y-4">
@@ -392,29 +432,20 @@ function renderHome(){
             <p class="text-pink-600 font-medium italic">${t('morse_secret')}</p>
         </div>
     </div>
-
     <div class="text-center mb-8">
         <h1 class="text-2xl md:text-4xl font-extrabold text-gray-900 mb-2">${t('hero_title')}</h1>
         <p class="text-sm md:text-lg text-gray-600">${t('hero_sub')}</p>
     </div>
-
     <h2 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2">${t('collection')}</h2>
-    
     ${filteredProducts.length === 0 ? `<div class="text-center text-gray-500 py-12">No products found matching "${state.searchQuery}"</div>` : ''}
-
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
       ${filteredProducts.map(p=>`
       <article class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group" onclick="window._app.viewProduct(${p.id})">
-        <div class="overflow-hidden">
-             <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-64 md:h-48 object-cover transition duration-700 group-hover:scale-110" />
-        </div>
+        <div class="overflow-hidden"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-64 md:h-48 object-cover transition duration-700 group-hover:scale-110" /></div>
         <div class="p-4 flex flex-col flex-1">
           <h3 class="text-lg font-semibold group-hover:text-pink-600 transition">${escapeHtml(p.name)}</h3>
           <div class="mt-auto pt-4 flex items-center justify-between">
-            <div>
-              <span class="text-gray-400 line-through text-sm block">${p.originalPrice} ${t('original_price')}</span>
-              <strong class="text-pink-600 text-xl">${p.price.toFixed(2)} ${t('original_price')}</strong>
-            </div>
+            <div><span class="text-gray-400 line-through text-sm block">${p.originalPrice} ${t('original_price')}</span><strong class="text-pink-600 text-xl">${p.price.toFixed(2)} ${t('original_price')}</strong></div>
             <button onclick="event.stopPropagation(); window._app.viewProduct(${p.id})" class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 shadow-md hover:shadow-lg transition">${t('customize')}</button>
           </div>
         </div>
@@ -426,54 +457,30 @@ function renderHome(){
 function renderProductDetail() {
   const mainProduct = findProduct(state.selectedProductId) || state.products[0];
   const otherProducts = state.products.filter(p => p.id !== mainProduct.id);
-
   return `
   <section class="py-8 px-4 max-w-7xl mx-auto">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      
       <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
         <div class="mb-6">
-          <button onclick="window._app.nav('home')" class="text-gray-500 hover:text-pink-600 mb-4 inline-flex items-center gap-1">
-             ${state.lang==='ar' ? '&rarr;' : '&larr;'} ${t('back_shop')}
-          </button>
+          <button onclick="window._app.nav('home')" class="text-gray-500 hover:text-pink-600 mb-4 inline-flex items-center gap-1">${state.lang==='ar' ? '&rarr;' : '&larr;'} ${t('back_shop')}</button>
           <img src="${escapeHtml(mainProduct.image)}" alt="${escapeHtml(mainProduct.name)}" class="w-full h-96 object-cover rounded-lg shadow-sm">
         </div>
         <h1 class="text-3xl font-extrabold text-gray-900 mb-2">${escapeHtml(mainProduct.name)}</h1>
         <p class="text-gray-600 mb-6 text-lg leading-relaxed">${escapeHtml(mainProduct.description)}</p>
-
         <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
             <label class="block text-sm font-bold text-gray-700 mb-2">${t('custom_title')} <span class="text-xs font-normal text-gray-500">${t('custom_limit')}</span></label>
-            <input type="text" maxlength="10" placeholder="Type name here (e.g., ANNA)..." 
-                class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:outline-none mb-3 text-lg"
-                oninput="document.getElementById('morse-preview').textContent = window._app.translateToMorse(this.value)"
-            >
-            <div class="text-center">
-                <span class="text-sm text-gray-500">${t('custom_hint')}</span>
-                <div id="morse-preview" class="text-3xl font-extrabold text-pink-600 mt-2 tracking-widest min-h-[40px]">...</div>
-            </div>
+            <input type="text" maxlength="10" placeholder="Type name here (e.g., ANNA)..." class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:outline-none mb-3 text-lg" oninput="document.getElementById('morse-preview').textContent = window._app.translateToMorse(this.value)">
+            <div class="text-center"><span class="text-sm text-gray-500">${t('custom_hint')}</span><div id="morse-preview" class="text-3xl font-extrabold text-pink-600 mt-2 tracking-widest min-h-[40px]">...</div></div>
         </div>
-        
         <div class="flex flex-col sm:flex-row items-center justify-between border-t pt-6 gap-4">
-          <div>
-            <span class="text-xl text-gray-400 line-through mr-2">${mainProduct.originalPrice} ${t('original_price')}</span>
-            <span class="text-4xl font-extrabold text-pink-600">${mainProduct.price.toFixed(2)} ${t('original_price')}</span>
-          </div>
+          <div><span class="text-xl text-gray-400 line-through mr-2">${mainProduct.originalPrice} ${t('original_price')}</span><span class="text-4xl font-extrabold text-pink-600">${mainProduct.price.toFixed(2)} ${t('original_price')}</span></div>
           <button onclick="window._app.addToCart(${mainProduct.id})" class="w-full sm:w-auto px-8 py-4 bg-pink-600 text-white text-lg font-bold rounded-lg shadow-lg hover:shadow-xl hover:bg-pink-700 transform transition hover:scale-105">${t('add_cart')}</button>
         </div>
       </div>
-
       <div class="lg:col-span-1">
         <h3 class="text-xl font-bold mb-4 text-gray-800">${t('you_like')}</h3>
         <div class="space-y-4">
-          ${otherProducts.map(p => `
-            <div class="bg-white rounded-lg shadow p-3 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition border border-transparent hover:border-pink-200" onclick="window._app.viewProduct(${p.id})">
-              <img src="${escapeHtml(p.image)}" class="w-20 h-20 object-cover rounded" alt="${escapeHtml(p.name)}">
-              <div>
-                <h4 class="font-semibold text-gray-800 text-sm">${escapeHtml(p.name)}</h4>
-                <div class="mt-1"><span class="text-sm font-bold text-pink-600">${p.price} ${t('original_price')}</span></div>
-              </div>
-            </div>
-          `).join('')}
+          ${otherProducts.map(p => `<div class="bg-white rounded-lg shadow p-3 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition border border-transparent hover:border-pink-200" onclick="window._app.viewProduct(${p.id})"><img src="${escapeHtml(p.image)}" class="w-20 h-20 object-cover rounded" alt="${escapeHtml(p.name)}"><div><h4 class="font-semibold text-gray-800 text-sm">${escapeHtml(p.name)}</h4><div class="mt-1"><span class="text-sm font-bold text-pink-600">${p.price} ${t('original_price')}</span></div></div></div>`).join('')}
         </div>
       </div>
     </div>
@@ -486,15 +493,7 @@ function renderGallery(){
     <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 text-center mb-4">${t('spotlight')}</h1>
     <p class="text-center text-gray-500 mb-8">${t('spotlight_sub')}</p>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      ${state.products.map(p=>`
-      <div class="bg-white rounded-xl shadow overflow-hidden group cursor-pointer relative" onclick="window._app.viewProduct(${p.id})">
-        <div class="aspect-[1/1] overflow-hidden">
-          <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110" />
-        </div>
-        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition flex items-center justify-center">
-          <span class="opacity-0 group-hover:opacity-100 bg-white text-pink-600 px-4 py-2 rounded-full font-bold shadow-lg transform translate-y-4 group-hover:translate-y-0 transition">${t('shop_now')}</span>
-        </div>
-      </div>`).join('')}
+      ${state.products.map(p=>`<div class="bg-white rounded-xl shadow overflow-hidden group cursor-pointer relative" onclick="window._app.viewProduct(${p.id})"><div class="aspect-[1/1] overflow-hidden"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110" /></div><div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition flex items-center justify-center"><span class="opacity-0 group-hover:opacity-100 bg-white text-pink-600 px-4 py-2 rounded-full font-bold shadow-lg transform translate-y-4 group-hover:translate-y-0 transition">${t('shop_now')}</span></div></div>`).join('')}
     </div>
   </section>`;
 }
@@ -503,8 +502,11 @@ function renderCart(){
   const items = cartItems();
   const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
   const total = cartTotal();
-  // Check for Free Shipping
-  const shippingDisplay = subtotal >= FREE_SHIPPING_THRESHOLD ? `<span class="text-green-600 font-bold">${t('free')}</span>` : `${SHIPPING_COST.toFixed(2)} ${t('original_price')}`;
+  const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const shippingDisplay = shippingFee === 0 ? `<span class="text-green-600 font-bold">${t('free')}</span>` : `${shippingFee.toFixed(2)} ${t('original_price')}`;
+  const codDisplay = state.paymentMethod === 'cod' ? `
+    <div class="flex justify-between items-center mb-2 text-sm text-gray-600"><span>${t('cod_fee')}</span><span>${COD_FEE.toFixed(2)} ${t('original_price')}</span></div>
+  ` : '';
 
   if(items.length===0) return `<section class="py-12 px-4 max-w-3xl mx-auto text-center"><h2 class="text-2xl font-bold mb-4">${t('cart_empty')}</h2><button class="px-6 py-2 bg-pink-600 text-white rounded" onclick="window._app.nav('home')">${t('shop_now')}</button></section>`;
   
@@ -512,26 +514,14 @@ function renderCart(){
   <section class="py-12 px-4 max-w-4xl mx-auto">
     <h2 class="text-3xl font-bold mb-6">${t('your_cart')}</h2>
     <div class="space-y-4">
-      ${items.map(it=>`
-      <div class="flex items-center bg-white p-4 rounded-lg shadow">
-        <img src="${escapeHtml(it.image)}" alt="${escapeHtml(it.name)}" class="w-20 h-20 object-cover rounded mr-4" />
-        <div class="flex-1">
-          <h3 class="font-semibold">${escapeHtml(it.name)}</h3>
-          <p class="text-gray-600">${it.price.toFixed(2)} ${t('original_price')}</p>
-        </div>
-        <div class="flex items-center space-x-4">
-          <input data-cart-qty="${it.id}" type="number" min="1" value="${it.quantity}" class="w-16 p-2 border rounded" />
-          <span class="text-lg font-bold">${it.subtotal.toFixed(2)}</span>
-        </div>
-      </div>`).join('')}
+      ${items.map(it=>`<div class="flex items-center bg-white p-4 rounded-lg shadow"><img src="${escapeHtml(it.image)}" alt="${escapeHtml(it.name)}" class="w-20 h-20 object-cover rounded mr-4" /><div class="flex-1"><h3 class="font-semibold">${escapeHtml(it.name)}</h3><p class="text-gray-600">${it.price.toFixed(2)} ${t('original_price')}</p></div><div class="flex items-center space-x-4"><input data-cart-qty="${it.id}" type="number" min="1" value="${it.quantity}" class="w-16 p-2 border rounded" /><span class="text-lg font-bold">${it.subtotal.toFixed(2)}</span></div></div>`).join('')}
     </div>
-    
     <div class="mt-8 pt-6 border-t border-gray-200">
       <div class="flex justify-between items-center mb-2"><span class="text-gray-600">${t('subtotal')}</span><span class="font-bold">${subtotal.toFixed(2)} ${t('original_price')}</span></div>
       <div class="flex justify-between items-center mb-2"><span class="text-gray-600">${t('shipping')}</span><span class="font-bold">${shippingDisplay}</span></div>
+      ${codDisplay}
       <div class="flex justify-between items-center text-xl mt-4 border-t pt-4"><h3 class="font-bold">${t('total')}</h3><div class="font-extrabold text-pink-600">${total.toFixed(2)} ${t('original_price')}</div></div>
     </div>
-
     <div class="mt-6 flex justify-end gap-4">
       <button id="btn-clear-cart" class="px-6 py-3 border rounded">${t('clear_cart')}</button>
       <button class="px-6 py-3 bg-pink-600 text-white rounded" onclick="window._app.nav('checkout')">${t('proceed')}</button>
@@ -543,36 +533,99 @@ function renderCheckout(){
   const items = cartItems();
   const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
   const total = cartTotal();
-  const shippingFeeFinal = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
 
   if(items.length===0) return `<section class="py-12 px-4 max-w-2xl mx-auto text-center"><p class="text-lg">${t('cart_empty')}</p><div class="mt-4"><button class="px-4 py-2 bg-pink-600 text-white rounded" onclick="window._app.nav('home')">${t('shop_now')}</button></div></section>`;
   
   return `
-  <section class="py-12 px-4 max-w-2xl mx-auto">
+  <section class="py-12 px-4 max-w-4xl mx-auto">
     <h2 class="text-3xl font-bold mb-6">${t('checkout_title')}</h2>
-    <form id="checkout-form" class="bg-white p-6 rounded shadow space-y-4" onsubmit="window._app.handleCheckoutSubmit(event)">
-      <div><label class="block text-sm font-medium text-gray-700">${t('full_name')}</label><input name="name" required class="mt-1 block w-full p-2 border rounded" /></div>
-      <div><label class="block text-sm font-medium text-gray-700">${t('phone_1')}</label><input name="phone1" type="tel" maxlength="11" required class="mt-1 block w-full p-2 border rounded" placeholder="01xxxxxxxxx" /></div>
-      <div><label class="block text-sm font-medium text-gray-700">${t('phone_2')}</label><input name="phone2" type="tel" class="mt-1 block w-full p-2 border rounded" /></div>
-      <div><label class="block text-sm font-medium text-gray-700">${t('address')}</label><textarea name="address" required class="mt-1 block w-full p-2 border rounded"></textarea></div>
+    <form id="checkout-form" class="space-y-8" onsubmit="window._app.handleCheckoutSubmit(event)">
       
-      <div>
-        <label class="block text-sm font-bold text-gray-800 bg-pink-50 p-2 rounded-t">${t('custom_title')}</label>
-        <div class="bg-gray-50 p-3 rounded-b border border-gray-200">
+      <div class="bg-white p-6 rounded shadow">
+        <h3 class="font-bold text-lg mb-4 border-b pb-2">1. Personal Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><label class="block text-sm font-medium text-gray-700">${t('full_name')}</label><input name="name" required class="mt-1 block w-full p-2 border rounded" /></div>
+            <div><label class="block text-sm font-medium text-gray-700">${t('phone_1')}</label><input name="phone1" type="tel" maxlength="11" required class="mt-1 block w-full p-2 border rounded" placeholder="01xxxxxxxxx" /></div>
+            <div><label class="block text-sm font-medium text-gray-700">${t('phone_2')}</label><input name="phone2" type="tel" class="mt-1 block w-full p-2 border rounded" /></div>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded shadow">
+        <h3 class="font-bold text-lg mb-4 border-b pb-2">2. ${t('address_section')}</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">${t('gov_label')}</label>
+                <select name="gov" required class="mt-1 block w-full p-2 border rounded bg-white">
+                    <option value="">Select Governorate</option>
+                    ${GOVERNORATES.map(g => `<option value="${g}">${g}</option>`).join('')}
+                </select>
+            </div>
+            <div><label class="block text-sm font-medium text-gray-700">${t('district_label')}</label><input name="district" required class="mt-1 block w-full p-2 border rounded" placeholder="e.g. Maadi, Smouha" /></div>
+            <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700">${t('street_label')}</label><input name="street" required class="mt-1 block w-full p-2 border rounded" /></div>
+            <div><label class="block text-sm font-medium text-gray-700">${t('building_label')}</label><input name="building" required class="mt-1 block w-full p-2 border rounded" /></div>
+            <div><label class="block text-sm font-medium text-gray-700">${t('floor_label')}</label><input name="floor" required class="mt-1 block w-full p-2 border rounded" /></div>
+        </div>
+      </div>
+      
+      <div class="bg-white p-6 rounded shadow">
+        <h3 class="font-bold text-lg mb-4 border-b pb-2">3. ${t('custom_title')}</h3>
+        <div class="bg-pink-50 p-3 rounded border border-pink-200">
             <p class="text-xs text-gray-500 mb-2">${t('custom_hint')} ${t('custom_limit')}</p>
             <textarea name="custom_text" required class="block w-full p-2 border rounded focus:ring-1 focus:ring-pink-500" placeholder="e.g. ANNA"></textarea>
         </div>
       </div>
 
-      <div><h3 class="font-semibold border-t pt-4 mt-4">${t('total')}</h3><div class="mt-2 text-right font-bold text-xl">${total.toFixed(2)} ${t('original_price')}</div></div>
-      
-      <div class="flex justify-end"><button type="submit" class="px-6 py-2 bg-green-600 text-white rounded font-bold hover:bg-green-700 w-full md:w-auto">${t('place_order')}</button></div>
-      
-      <div class="flex justify-center gap-4 mt-6 text-xs text-gray-500 border-t pt-4">
-        <div class="flex items-center gap-1"><span class="text-lg">🔒</span> ${t('secure_checkout')}</div>
-        <div class="flex items-center gap-1"><span class="text-lg">✅</span> ${t('easy_returns')}</div>
-        <div class="flex items-center gap-1"><span class="text-lg">📞</span> ${t('customer_support')}</div>
+      <div class="bg-white p-6 rounded shadow">
+        <h3 class="font-bold text-lg mb-4 border-b pb-2">4. ${t('payment_section')}</h3>
+        <div class="space-y-3">
+            <label class="flex items-center space-x-3 cursor-pointer p-3 border rounded ${state.paymentMethod==='card'?'border-pink-500 bg-pink-50':''}" onclick="window._app.updatePaymentMethod('card')">
+                <input type="radio" name="payment" value="card" ${state.paymentMethod==='card'?'checked':''} class="h-5 w-5 text-pink-600">
+                <span class="font-medium">${t('pay_card')}</span>
+            </label>
+            
+            <label class="flex items-center space-x-3 cursor-pointer p-3 border rounded ${state.paymentMethod==='apple'?'border-pink-500 bg-pink-50':''}" onclick="window._app.updatePaymentMethod('apple')">
+                <input type="radio" name="payment" value="apple" ${state.paymentMethod==='apple'?'checked':''} class="h-5 w-5 text-pink-600">
+                <span class="font-medium">${t('pay_apple')}</span>
+            </label>
+
+            <label class="flex items-center space-x-3 cursor-pointer p-3 border rounded ${state.paymentMethod==='cod'?'border-pink-500 bg-pink-50':''}" onclick="window._app.updatePaymentMethod('cod')">
+                <input type="radio" name="payment" value="cod" ${state.paymentMethod==='cod'?'checked':''} class="h-5 w-5 text-pink-600">
+                <span class="font-medium">${t('pay_cod')}</span>
+            </label>
+        </div>
+
+        <div class="mt-4 p-4 border rounded bg-gray-50">
+            ${state.paymentMethod === 'card' ? `
+                <div class="space-y-3">
+                    <input placeholder="Card Number" maxlength="19" class="w-full p-2 border rounded" />
+                    <div class="flex gap-2">
+                        <input placeholder="MM/YY" maxlength="5" class="w-1/2 p-2 border rounded" />
+                        <input placeholder="CVC" maxlength="3" class="w-1/2 p-2 border rounded" />
+                    </div>
+                </div>
+            ` : state.paymentMethod === 'apple' ? `
+                <div class="text-center">
+                    <div class="apple-pay-button">Pay with Pay</div>
+                    <p class="text-xs text-gray-500 mt-2">Secure biometric authentication required.</p>
+                </div>
+            ` : `
+                <p class="text-sm text-gray-600">Please prepare exact cash amount upon delivery.</p>
+            `}
+        </div>
       </div>
+
+      <div class="bg-gray-50 p-6 rounded shadow border-t-4 border-pink-600">
+        <div class="flex justify-between items-center text-xl font-bold mb-4">
+            <span>${t('total')}</span>
+            <span class="text-pink-600">${total.toFixed(2)} ${t('original_price')}</span>
+        </div>
+        <button type="submit" class="w-full py-4 bg-green-600 text-white rounded text-lg font-bold hover:bg-green-700 shadow-lg">${t('place_order')}</button>
+        <div class="flex justify-center gap-4 mt-4 text-xs text-gray-500">
+            <div class="flex items-center gap-1"><span class="text-lg">🔒</span> ${t('secure_checkout')}</div>
+            <div class="flex items-center gap-1"><span class="text-lg">✅</span> ${t('easy_returns')}</div>
+        </div>
+      </div>
+
     </form>
   </section>`;
 }
@@ -594,7 +647,11 @@ function renderFooter(){
   return `
   <footer class="bg-gray-800 text-white py-8 mt-8">
     <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-      <div class="text-center md:text-left"><h4 class="text-xl font-bold">${t('title')}</h4><div class="text-sm text-gray-400 mt-1">&copy; 2025 ${t('footer_rights')}</div></div>
+      <div class="text-center md:text-left">
+        <h4 class="text-xl font-bold">${t('title')}</h4>
+        <div class="text-sm text-gray-400 mt-1">&copy; 2025 ${t('footer_rights')}</div>
+        <button onclick="window._app.togglePolicyModal()" class="text-xs text-pink-400 hover:text-pink-300 mt-2 underline">${t('policy_link')}</button>
+      </div>
       <div class="flex flex-col items-center md:items-end gap-3">
         <p class="font-semibold mb-1">Socials:</p>
         <a href="https://wa.me/201281770085" target="_blank" class="flex items-center gap-2 hover:text-green-400"><span>WhatsApp: +201281770085</span></a>
@@ -609,12 +666,28 @@ function renderSuccessModal() {
   return `
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
     <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center modal-fade-in border-4 border-green-100">
-      <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-      </div>
+      <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6"><svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div>
       <h3 class="text-2xl font-bold text-gray-900 mb-2">${t('order_success_title')}</h3>
       <p class="text-gray-600 mb-8">${t('order_success_msg')}</p>
       <button onclick="window._app.closeSuccessModal()" class="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition transform hover:scale-105">${t('close')}</button>
+    </div>
+  </div>`;
+}
+
+function renderPolicyModal() {
+  if (!state.showPolicyModal) return '';
+  return `
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full modal-fade-in relative overflow-y-auto max-h-[80vh]">
+      <button onclick="window._app.togglePolicyModal()" class="absolute top-4 right-4 text-gray-500 hover:text-black font-bold text-xl">&times;</button>
+      <h3 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">${t('policy_title')}</h3>
+      <div class="text-gray-700 space-y-4 text-sm leading-relaxed">
+        <p><strong>1. Delivery:</strong> Standard delivery takes 3-5 business days. Expedited shipping is available upon request.</p>
+        <p><strong>2. Returns:</strong> Since our jewelry is personalized with Morse Code, returns are only accepted if the product arrives damaged or with an error in the encoding.</p>
+        <p><strong>3. Repairs:</strong> We offer a 30-day warranty on cords and clasps.</p>
+        <p><strong>4. Payment:</strong> Secure payments via Credit Card, Apple Pay, or Cash on Delivery.</p>
+      </div>
+      <button onclick="window._app.togglePolicyModal()" class="w-full mt-6 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">${t('close')}</button>
     </div>
   </div>`;
 }
@@ -641,6 +714,7 @@ function render(){
       ${renderFooter()}
       ${state.message ? `<div id="flash" class="flash-slide-in fixed top-6 left-1/2 transform -translate-x-1/2 ${flashColorClass} text-white px-8 py-3 rounded-full shadow-lg z-50 text-center font-medium">${escapeHtml(state.message)}</div>` : ''}
       ${renderSuccessModal()}
+      ${renderPolicyModal()}
     </div>
   `;
   
@@ -651,21 +725,45 @@ function render(){
 async function handleCheckoutSubmit(evt){
   evt.preventDefault();
   const form = evt.target;
+  
+  // Basic Fields
   const name = form.name.value.trim();
   const phone1 = form.phone1.value.trim();
   const phone2 = form.phone2.value.trim();
-  const address = form.address.value.trim();
   const customText = form.custom_text.value.trim();
+  
+  // Detailed Address Construction
+  const gov = form.gov.value;
+  const district = form.district.value.trim();
+  const street = form.street.value.trim();
+  const building = form.building.value.trim();
+  const floor = form.floor.value.trim();
+  
+  const fullAddress = `${street}, Bldg ${building}, Fl ${floor}, ${district}, ${gov}`;
 
   const phoneRegex = /^\d{11}$/;
   if (!phoneRegex.test(phone1)) { flashMessage(t('phone_error'), 'error'); return; }
-  if(!name || !phone1 || !address || !customText){ flashMessage(t('fill_fields'), 'error'); return; }
+  if(!name || !phone1 || !gov || !district || !street || !customText){ flashMessage(t('fill_fields'), 'error'); return; }
 
-  // Recalculate shipping inside here for the database
+  // Recalculate Logic
   const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
-  const finalShippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  let shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  let finalTotal = subtotal + shippingFee;
+  
+  if(state.paymentMethod === 'cod') {
+      finalTotal += COD_FEE;
+  }
 
-  const orderData = { name, phone1, phone2, address, customText, items: cartItems(), totalPrice: cartTotal(), shippingFee: finalShippingFee, currency: 'EGP' };
+  const orderData = { 
+      name, phone1, phone2, 
+      address: fullAddress, 
+      customText, 
+      items: cartItems(), 
+      totalPrice: finalTotal, 
+      shippingFee, 
+      paymentMethod: state.paymentMethod,
+      currency: 'EGP' 
+  };
   
   const success = await submitOrderToFirestore(orderData);
   if(success){ 
@@ -687,7 +785,7 @@ async function handleContactSubmit(evt){
   if(success){ form.reset(); }
 }
 
-window._app={state, addToCart, viewProduct, updateQuantity, clearCart, cartItems, cartTotal, toggleLang, translateToMorse, handleSearch, render, closeSuccessModal, nav, handleCheckoutSubmit, handleContactSubmit};
+window._app={state, addToCart, viewProduct, updateQuantity, clearCart, cartItems, cartTotal, toggleLang, translateToMorse, handleSearch, render, closeSuccessModal, togglePolicyModal, nav, handleCheckoutSubmit, handleContactSubmit, updatePaymentMethod};
 
 render();
 </script>
