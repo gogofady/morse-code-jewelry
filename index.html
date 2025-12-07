@@ -79,6 +79,7 @@ const translations = {
     hero_sub: "Beautiful jewelry with a hidden meaning.",
     collection: "Our Collection",
     add_cart: "Add to Cart",
+    customize: "Customize", // New
     original_price: "EGP", 
     morse_title: "What is Morse Code?",
     morse_desc_1: "Morse code encodes text characters as sequences of dots (.) and dashes (-).",
@@ -90,6 +91,7 @@ const translations = {
     subtotal: "Subtotal",
     shipping: "Shipping Fees",
     shipping_banner: "🚚 Free shipping on orders over 1000 EGP!",
+    free: "FREE", // New
     total: "Total",
     clear_cart: "Clear Cart",
     proceed: "Proceed to Checkout",
@@ -129,6 +131,7 @@ const translations = {
     hero_sub: "مجوهرات جميلة تحمل معنى خفي",
     collection: "مجموعتنا المميزة",
     add_cart: "أضف للسلة",
+    customize: "تخصيص", // New
     original_price: "ج.م",
     morse_title: "ما هي شفرة مورس؟",
     morse_desc_1: "شفرة مورس تحول الحروف إلى نقاط (.) وشرطات (-).",
@@ -140,6 +143,7 @@ const translations = {
     subtotal: "المجموع الفرعي",
     shipping: "مصاريف الشحن",
     shipping_banner: "🚚 شحن مجاني للطلبات فوق ١٠٠٠ ج.م!",
+    free: "مجاني", // New
     total: "الإجمالي",
     clear_cart: "إفراغ السلة",
     proceed: "إتمام الشراء",
@@ -188,12 +192,12 @@ const state = {
   isAuthReady: false,
 };
 
+// 1. UPDATED SHIPPING CONSTANTS
 const SHIPPING_COST = 100;
+const FREE_SHIPPING_THRESHOLD = 1000;
 
 function t(key) { return translations[state.lang][key] || key; }
 
-// --- FIXED: Hard Navigation Function ---
-// This replaces the old listeners that were breaking
 function nav(pageName) {
     state.page = pageName;
     render();
@@ -253,9 +257,11 @@ function cartItems() {
   }).filter(Boolean);
 }
 
+// 1. UPDATED SHIPPING LOGIC
 function cartTotal() { 
   const sub = cartItems().reduce((s,it)=>s+it.subtotal,0);
   if (sub === 0) return 0;
+  if (sub >= FREE_SHIPPING_THRESHOLD) return sub; // Free shipping
   return sub + SHIPPING_COST; 
 }
 
@@ -283,8 +289,6 @@ function viewProduct(id) {
   window.scrollTo(0,0);
 }
 
-// --- FIXED: Search Handler ---
-// Now forces the page to 'home' so results appear immediately
 function handleSearch(evt) {
   state.searchQuery = evt.target.value.toLowerCase();
   if(state.page !== 'home') {
@@ -321,7 +325,6 @@ function renderNavbar(){
   const cartCount = state.cart.reduce((s,i)=>s+i.quantity,0);
   const langLabel = state.lang === 'en' ? '🌐 AR' : '🌐 EN';
   
-  // --- FIXED: Bigger Free Delivery Banner ---
   return `
   <div class="bg-gray-900 text-white text-sm font-bold text-center py-3 tracking-wide">
     ${t('shipping_banner')}
@@ -411,7 +414,7 @@ function renderHome(){
               <span class="text-gray-400 line-through text-sm block">${p.originalPrice} ${t('original_price')}</span>
               <strong class="text-pink-600 text-xl">${p.price.toFixed(2)} ${t('original_price')}</strong>
             </div>
-            <button onclick="event.stopPropagation(); window._app.addToCart(${p.id})" class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 shadow-md hover:shadow-lg transition">${t('add_cart')}</button>
+            <button onclick="event.stopPropagation(); window._app.viewProduct(${p.id})" class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 shadow-md hover:shadow-lg transition">${t('customize')}</button>
           </div>
         </div>
       </article>`).join('')}
@@ -499,6 +502,8 @@ function renderCart(){
   const items = cartItems();
   const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
   const total = cartTotal();
+  // Check for Free Shipping
+  const shippingDisplay = subtotal >= FREE_SHIPPING_THRESHOLD ? `<span class="text-green-600 font-bold">${t('free')}</span>` : `${SHIPPING_COST.toFixed(2)} ${t('original_price')}`;
 
   if(items.length===0) return `<section class="py-12 px-4 max-w-3xl mx-auto text-center"><h2 class="text-2xl font-bold mb-4">${t('cart_empty')}</h2><button class="px-6 py-2 bg-pink-600 text-white rounded" onclick="window._app.nav('home')">${t('shop_now')}</button></section>`;
   
@@ -522,7 +527,7 @@ function renderCart(){
     
     <div class="mt-8 pt-6 border-t border-gray-200">
       <div class="flex justify-between items-center mb-2"><span class="text-gray-600">${t('subtotal')}</span><span class="font-bold">${subtotal.toFixed(2)} ${t('original_price')}</span></div>
-      <div class="flex justify-between items-center mb-2"><span class="text-gray-600">${t('shipping')}</span><span class="font-bold">${SHIPPING_COST.toFixed(2)} ${t('original_price')}</span></div>
+      <div class="flex justify-between items-center mb-2"><span class="text-gray-600">${t('shipping')}</span><span class="font-bold">${shippingDisplay}</span></div>
       <div class="flex justify-between items-center text-xl mt-4 border-t pt-4"><h3 class="font-bold">${t('total')}</h3><div class="font-extrabold text-pink-600">${total.toFixed(2)} ${t('original_price')}</div></div>
     </div>
 
@@ -535,11 +540,12 @@ function renderCart(){
 
 function renderCheckout(){
   const items = cartItems();
+  const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
   const total = cartTotal();
+  const shippingFeeFinal = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
 
   if(items.length===0) return `<section class="py-12 px-4 max-w-2xl mx-auto text-center"><p class="text-lg">${t('cart_empty')}</p><div class="mt-4"><button class="px-4 py-2 bg-pink-600 text-white rounded" onclick="window._app.nav('home')">${t('shop_now')}</button></div></section>`;
   
-  // --- FIXED: Form onsubmit uses inline function ---
   return `
   <section class="py-12 px-4 max-w-2xl mx-auto">
     <h2 class="text-3xl font-bold mb-6">${t('checkout_title')}</h2>
@@ -636,16 +642,11 @@ function render(){
       ${renderSuccessModal()}
     </div>
   `;
-
-  // --- FIXED: Removed problematic listener attachment logic ---
-  // The logic is now inline in HTML (onclick="...")
   
-  // Re-attach listener only for cart quantity because it's tricky to inline perfectly
   document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ const id=Number(input.getAttribute('data-cart-qty')); const value=parseInt(input.value)||0; updateQuantity(id,value); });
   const clearBtn = document.getElementById('btn-clear-cart'); if(clearBtn) clearBtn.onclick=clearCart;
 }
 
-// --- FIXED: Handlers exposed globally for inline HTML access ---
 async function handleCheckoutSubmit(evt){
   evt.preventDefault();
   const form = evt.target;
@@ -659,7 +660,11 @@ async function handleCheckoutSubmit(evt){
   if (!phoneRegex.test(phone1)) { flashMessage(t('phone_error'), 'error'); return; }
   if(!name || !phone1 || !address || !customText){ flashMessage(t('fill_fields'), 'error'); return; }
 
-  const orderData = { name, phone1, phone2, address, customText, items: cartItems(), totalPrice: cartTotal(), shippingFee: SHIPPING_COST, currency: 'EGP' };
+  // Recalculate shipping inside here for the database
+  const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
+  const finalShippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+
+  const orderData = { name, phone1, phone2, address, customText, items: cartItems(), totalPrice: cartTotal(), shippingFee: finalShippingFee, currency: 'EGP' };
   
   const success = await submitOrderToFirestore(orderData);
   if(success){ 
