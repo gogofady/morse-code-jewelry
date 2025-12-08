@@ -5,436 +5,466 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   
   <title>Morse Jewelry | Express Yourself in Secret</title>
+  <meta name="description" content="Shop personalized Morse Code jewelry in Egypt. Handcrafted necklaces and bracelets that hide your secret message in dots and dashes.">
+  <meta name="keywords" content="Morse Code Jewelry, Personalized Gifts Egypt, Secret Message Necklace, Custom Bracelet, Handmade Jewelry Cairo">
+  <meta name="author" content="Morse Jewelry">
+  
   <meta property="og:title" content="Morse Jewelry - Personalized Secret Messages" />
   <meta property="og:description" content="Convert any name or word into beautiful handmade jewelry using Morse code." />
   <meta property="og:image" content="./morse_logo_transparent.png" />
+  <meta property="og:type" content="website" />
   
   <script src="https://cdn.tailwindcss.com"></script>
 
   <link rel="icon" href="./morse_logo_transparent.png" type="image/png">
 
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org/",
+    "@type": "Store",
+    "name": "Morse Jewelry",
+    "image": "./morse_logo_transparent.png",
+    "description": "Handcrafted jewelry encoding secret messages in Morse Code.",
+    "priceRange": "$$"
+  }
+  </script>
+
   <style>
     body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
-    .hidden-until-ready { opacity: 0; transition: opacity .25s ease-in; }
-    .visible-ready { opacity: 1; }
+    /* Smooth Transitions */
+    .fade-enter { opacity: 0; transform: translateY(10px); }
+    .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
     
-    /* Animations */
-    .flash-slide-in { animation: slideIn 0.5s ease-out forwards; }
-    @keyframes slideIn { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-    
-    .modal-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-
     /* Arabic Font */
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
     .font-arabic { font-family: 'Cairo', sans-serif; }
+    
+    /* Utility */
+    .hidden-force { display: none !important; }
   </style>
 </head>
-<body class="bg-gray-50 transition-all duration-300">
+<body class="bg-gray-50 flex flex-col min-h-screen transition-all duration-300">
 
-<div id="root" class="hidden-until-ready"></div>
+  <div class="bg-gray-900 text-white text-sm font-bold text-center py-3 tracking-wide" id="shipping-banner">
+    🚚 Free shipping on orders over 1000 EGP!
+  </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-
-// ---------- Firebase config ----------
-const firebaseConfig = {
-  apiKey: "AIzaSyDHRFiiklg8k8gmt1QGEstSM5hfTJvIZW8",
-  authDomain: "morse-code-jewelry.firebaseapp.com",
-  projectId: "morse-code-jewelry",
-  storageBucket: "morse-code-jewelry.firebasestorage.app",
-  messagingSenderId: "1034331508828",
-  appId: "1:1034331508828:web:08acf02e2363000e99d699",
-  measurementId: "G-C4WH6X1N1Z"
-};
-
-const app = initializeApp(firebaseConfig);
-try { getAnalytics(app); } catch(e) { console.info("Analytics init skipped"); }
-
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// >>> YOUR GOOGLE SCRIPT URL <<<
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuMlTdvd8sJYjNni9vvFEXsgtk8nLjCNqpbDYyjGmMnBX22EK7l3DT86vGnCtCtQyF/exec";
-
-// Morse Dictionary
-const MORSE_CODE = { 'a': '.-', 'b': '-...', 'c': '-.-.', 'd': '-..', 'e': '.', 'f': '..-.', 'g': '--.', 'h': '....', 'i': '..', 'j': '.---', 'k': '-.-', 'l': '.-..', 'm': '--', 'n': '-.', 'o': '---', 'p': '.--.', 'q': '--.-', 'r': '.-.', 's': '...', 't': '-', 'u': '..-', 'v': '...-', 'w': '.--', 'x': '-..-', 'y': '-.--', 'z': '--..', '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----', ' ': ' / ' };
-
-// Egyptian Governorates
-const GOVERNORATES = ["Cairo", "Giza", "Alexandria", "Dakahlia", "Red Sea", "Beheira", "Fayoum", "Gharbiya", "Ismailia", "Menofia", "Minya", "Qaliubiya", "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said", "Damietta", "Sharkia", "South Sinai", "Kafr Al Sheikh", "Matrouh", "Luxor", "Qena", "North Sinai", "Sohag"];
-
-// Translations
-const translations = {
-  en: {
-    title: "Morse Jewelry", shop: "Shop", gallery: "Gallery", contact: "Contact", search_placeholder: "Search items...", cart_empty: "Your cart is empty", shop_now: "Shop Now", hero_title: "Express Yourself in Secret", hero_sub: "Beautiful jewelry with a hidden meaning.", collection: "Our Collection", add_cart: "Add to Cart", customize: "Customize", original_price: "EGP", morse_title: "What is Morse Code?", morse_desc_1: "Morse code encodes text characters as sequences of dots (.) and dashes (-).", morse_desc_2: "We use Round Beads for Dots and Long Beads for Dashes.", morse_secret: "It's a secret message only you understand!", spotlight: "Customer Spotlight Gallery", spotlight_sub: "Click on any photo to shop the look!", your_cart: "Your Shopping Cart", subtotal: "Subtotal", shipping: "Shipping Fees", shipping_banner: "🚚 Free shipping on orders over 1000 EGP!", free: "FREE", total: "Total", clear_cart: "Clear Cart", proceed: "Proceed to Checkout", checkout_title: "Secure Checkout", full_name: "Full Name", phone_1: "Phone Number (11 digits)", phone_2: "Backup Phone (Optional)", address_section: "Delivery Address", gov_label: "Governorate", district_label: "Area Name", street_label: "Street Name", building_label: "Building No.", floor_label: "Floor No.", apt_label: "Apartment No.", custom_title: "Personalize Your Secret Message", custom_hint: "Type your name to see the Morse preview:", custom_limit: "(Up to 10 characters)", payment_section: "Payment Method", pay_cod: "Cash on Delivery", cod_desc: "Pay securely when you receive your order.", place_order: "Place Order", contact_us: "Contact Us", send_msg: "Send Message", footer_rights: "All rights reserved.", back_shop: "Back to Shop", you_like: "You might also like", added_cart: "Added to cart successfully", order_success_title: "Order Successful! 🎉", order_success_msg: "Thank you! We have received your order and will contact you shortly.", policy_link: "Return & Delivery Policy", policy_title: "Return & Delivery Policy", close: "Close", fill_fields: "Please fill all required fields", phone_error: "Phone number must be exactly 11 digits", secure_checkout: "Secure Checkout", easy_returns: "Easy Returns", customer_support: "Customer Support"
-  },
-  ar: {
-    title: "مورس للمجوهرات", shop: "المتجر", gallery: "المعرض", contact: "تواصل معنا", search_placeholder: "ابحث عن منتج...", cart_empty: "سلة التسوق فارغة", shop_now: "تسوق الآن", hero_title: "عبر عن نفسك بسرية", hero_sub: "مجوهرات جميلة تحمل معنى خفي", collection: "مجموعتنا المميزة", add_cart: "أضف للسلة", customize: "تخصيص", original_price: "ج.م", morse_title: "ما هي شفرة مورس؟", morse_desc_1: "شفرة مورس تحول الحروف إلى نقاط (.) وشرطات (-).", morse_desc_2: "نستخدم الخرز الدائري للنقاط والخرز الطويل للشرطات.", morse_secret: "إنها رسالة سرية لا يفهمها إلا أنت!", spotlight: "معرض صور العملاء", spotlight_sub: "اضغط على أي صورة لشراء نفس المنتج!", your_cart: "سلة التسوق الخاصة بك", subtotal: "المجموع الفرعي", shipping: "مصاريف الشحن", shipping_banner: "🚚 شحن مجاني للطلبات فوق ١٠٠٠ ج.م!", free: "مجاني", total: "الإجمالي", clear_cart: "إفراغ السلة", proceed: "إتمام الشراء", checkout_title: "دفع آمن", full_name: "الاسم بالكامل", phone_1: "رقم الهاتف (١١ رقم)", phone_2: "رقم هاتف آخر (اختياري)", address_section: "عنوان التوصيل", gov_label: "المحافظة", district_label: "اسم المنطقة", street_label: "اسم الشارع", building_label: "رقم المبنى", floor_label: "رقم الدور", apt_label: "رقم الشقة", custom_title: "خصص رسالتك السرية", custom_hint: "اكتب الاسم لرؤية شكل شفرة مورس:", custom_limit: "(حد أقصى ١٠ حروف)", payment_section: "طريقة الدفع", pay_cod: "دفع عند الاستلام", cod_desc: "الدفع بأمان عند استلام الطلب.", place_order: "تأكيد الطلب", contact_us: "اتصل بنا", send_msg: "إرسال الرسالة", footer_rights: "جميع الحقوق محفوظة.", back_shop: "العودة للمتجر", you_like: "قد يعجبك أيضاً", added_cart: "تمت الإضافة للسلة بنجاح", order_success_title: "تم الطلب بنجاح! 🎉", order_success_msg: "شكراً لك! لقد استلمنا طلبك وسنتواصل معك قريباً.", policy_link: "سياسة الاسترجاع والشحن", policy_title: "سياسة الاسترجاع والشحن", close: "إغلاق", fill_fields: "يرجى ملء جميع البيانات المطلوبة", phone_error: "يجب أن يتكون رقم الهاتف من ١١ رقماً", secure_checkout: "دفع آمن", easy_returns: "سهولة الاسترجاع", customer_support: "دعم فني"
-  }
-};
-
-let currentUserId = null;
-const state = {
-  lang: 'en', page: 'home', cart: [], selectedProductId: null, searchQuery: '', showSuccessModal: false, showPolicyModal: false, 
-  // Fixed Payment Method
-  paymentMethod: 'cod', 
-  products: [
-    { id: 1, name: 'Gold Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
-    { id: 2, name: 'Gold Morse Code Bracelet', price: 550, originalPrice: 900, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
-    { id: 3, name: 'Silver Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
-    { id: 4, name: 'Silver Cord Bracelet Set', price: 550, originalPrice: 900, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
-  ],
-  message: '', messageType: 'success', isAuthReady: false,
-};
-
-// Shipping Constants
-const SHIPPING_COST = 100;
-const FREE_SHIPPING_THRESHOLD = 1000;
-
-function t(key) { return translations[state.lang][key] || key; }
-function nav(pageName) { state.page = pageName; render(); window.scrollTo(0,0); }
-function toggleLang() { state.lang = state.lang === 'en' ? 'ar' : 'en'; document.body.dir = state.lang === 'ar' ? 'rtl' : 'ltr'; if(state.lang === 'ar') document.body.classList.add('font-arabic'); else document.body.classList.remove('font-arabic'); render(); }
-function updateTitle() {
-  if (state.page === 'product_detail' && state.selectedProductId) { const p = findProduct(state.selectedProductId); document.title = state.lang === 'en' ? `Buy ${p.name} | Morse Jewelry` : `شراء ${p.name} | مورس للمجوهرات`; } else { document.title = state.lang === 'en' ? "Morse Jewelry | Express Yourself in Secret" : "مورس للمجوهرات | عبر عن نفسك بسرية"; }
-}
-
-async function ensureAnonymousSignIn() { onAuthStateChanged(auth, user => { if (user) { currentUserId = user.uid; state.isAuthReady = true; render(); } else { signInAnonymously(auth).then(cred => { currentUserId = cred.user.uid; state.isAuthReady = true; render(); }); } }); }
-ensureAnonymousSignIn();
-
-function findProduct(id) { return state.products.find(p=>p.id===Number(id)); }
-function addToCart(productId) { const existing = state.cart.find(i => i.productId === productId); if(existing) existing.quantity++; else state.cart.push({productId, quantity:1}); flashMessage(t('added_cart'), 'success'); render(); }
-function updateQuantity(productId, qty){ if(qty<=0) state.cart = state.cart.filter(i=>i.productId!==productId); else { const item = state.cart.find(i=>i.productId===productId); if(item) item.quantity=qty; } render(); }
-function clearCart() { state.cart=[]; render(); }
-function cartItems() { return state.cart.map(ci=>{ const p=findProduct(ci.productId); if(!p) return null; return {...p, quantity: ci.quantity, subtotal: +(p.price*ci.quantity).toFixed(2)}; }).filter(Boolean); }
-function cartTotal() { const sub = cartItems().reduce((s,it)=>s+it.subtotal,0); if (sub === 0) return 0; const shipping = sub >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST; return sub + shipping; }
-function translateToMorse(text) { return text.toLowerCase().split('').map(char => MORSE_CODE[char] || char).join(' '); }
-
-let flashTimer = null;
-function flashMessage(msg, type='success', ms=3000){ state.message = msg; state.messageType = type; render(); if(flashTimer) clearTimeout(flashTimer); flashTimer=setTimeout(()=>{state.message=''; render();}, ms); }
-function showSuccessModal() { state.showSuccessModal = true; render(); }
-function closeSuccessModal() { state.showSuccessModal = false; render(); }
-function togglePolicyModal() { state.showPolicyModal = !state.showPolicyModal; render(); }
-function viewProduct(id) { state.selectedProductId = Number(id); state.page = 'product_detail'; render(); window.scrollTo(0,0); }
-function handleSearch(evt) { state.searchQuery = evt.target.value.toLowerCase(); if(state.page !== 'home') { state.page = 'home'; } render(); }
-
-// ---------- Backend Functions ----------
-async function submitOrderToFirestore(orderData){
-  if(!currentUserId){ flashMessage('Auth not ready', 'error'); return false; }
-  
-  // 1. Send data to Google Sheets
-  if(GOOGLE_SCRIPT_URL) {
-     try {
-       await fetch(GOOGLE_SCRIPT_URL, { 
-         method: "POST", 
-         mode: "no-cors", 
-         headers: { "Content-Type": "application/json" }, 
-         body: JSON.stringify(orderData) 
-       });
-     } catch(e) { console.error("Sheet Upload Error", e); }
-  }
-
-  // 2. Send data to Firestore
-  try{ 
-    await addDoc(collection(db,'orders'), {...orderData, userId:currentUserId, timestamp:serverTimestamp()}); 
-    return true; 
-  }
-  catch(e){ console.error(e); flashMessage('Order failed locally', 'error'); return false; }
-}
-
-async function submitContactToFirestore(contactData){ if(!currentUserId){ flashMessage('Auth not ready', 'error'); return false; } try{ await addDoc(collection(db,'contact_messages'), {...contactData,userId:currentUserId,timestamp:serverTimestamp()}); flashMessage(t('send_msg') + ' success', 'success'); return true; } catch(e){ console.error(e); flashMessage('Failed', 'error'); return false; } }
-
-const root = document.getElementById('root');
-function escapeHtml(str){ if(!str) return ''; return String(str).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
-
-// ---------- Render Functions ----------
-function renderNavbar(){
-  const cartCount = state.cart.reduce((s,i)=>s+i.quantity,0);
-  const langLabel = state.lang === 'en' ? '🌐 AR' : '🌐 EN';
-  return `
-  <div class="bg-gray-900 text-white text-sm font-bold text-center py-3 tracking-wide">${t('shipping_banner')}</div>
-  <nav class="bg-white shadow sticky top-0 z-20">
+  <nav class="bg-white shadow sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+      
       <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-        <div class="flex items-center gap-2 cursor-pointer" onclick="window._app.nav('home')">
-            <img src="./morse_logo_transparent.png" alt="Logo" class="h-10 md:h-16 w-auto object-contain">
-            <span class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">${t('title')}</span>
-        </div>
+        <a href="#" onclick="window._app.nav('home'); return false;" class="flex items-center gap-2">
+            <img src="./morse_logo_transparent.png" alt="Morse Jewelry Logo" class="h-10 md:h-16 w-auto object-contain">
+            <span class="text-lg md:text-xl font-bold text-gray-800 tracking-wide" id="nav-title">Morse Jewelry</span>
+        </a>
+        
         <div class="flex items-center gap-2 md:hidden">
-            <button onclick="window._app.toggleLang()" class="px-2 py-1 border rounded text-xs font-bold text-pink-600">${langLabel}</button>
+            <button onclick="window._app.toggleLang()" class="px-2 py-1 border rounded text-xs font-bold text-pink-600" id="lang-btn-mob">🌐 AR</button>
             <button onclick="window._app.nav('cart')" class="relative p-2 text-gray-700">
              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" /></svg>
-             ${cartCount ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">${cartCount}</span>` : ''}
+             <span id="cart-badge-mob" class="hidden absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">0</span>
             </button>
         </div>
       </div>
+
       <div class="flex items-center gap-4 w-full md:w-auto">
-        <div class="relative flex-1 md:flex-none"><input type="text" placeholder="${t('search_placeholder')}" value="${state.searchQuery}" oninput="window._app.handleSearch(event)" class="w-full md:w-48 pl-3 pr-8 py-1.5 rounded-full border border-gray-300 focus:outline-none focus:border-pink-500 text-sm transition-all focus:w-full md:focus:w-64"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></div>
+        
+        <div class="relative flex-1 md:flex-none">
+            <input type="text" id="search-input" placeholder="Search items..." 
+                oninput="window._app.handleSearch(event)"
+                class="w-full md:w-48 pl-3 pr-8 py-1.5 rounded-full border border-gray-300 focus:outline-none focus:border-pink-500 text-sm transition-all focus:w-full md:focus:w-64"
+            >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </div>
+
         <div class="hidden md:flex items-center gap-4">
-            <button onclick="window._app.nav('home')" class="text-sm font-medium text-gray-700 hover:text-pink-600 uppercase cursor-pointer">${t('shop')}</button>
-            <button onclick="window._app.nav('gallery')" class="text-sm font-medium text-gray-700 hover:text-pink-600 cursor-pointer">${t('gallery')}</button>
-            <button onclick="window._app.toggleLang()" class="px-2 py-1 border rounded text-xs hover:bg-gray-100 font-bold text-pink-600">${langLabel}</button>
-            <button onclick="window._app.nav('cart')" class="relative p-2 text-gray-700 hover:text-pink-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" /></svg>${cartCount ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">${cartCount}</span>` : ''}</button>
-        </div>
-      </div>
-    </div>
-  </nav>`;
-}
-
-function renderHome(){
-  const filteredProducts = state.products.filter(p => p.name.toLowerCase().includes(state.searchQuery));
-  return `
-  <section class="py-6 px-4 max-w-7xl mx-auto">
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-12 mb-12 flex flex-col md:flex-row items-center gap-8">
-        <div class="flex-1 w-full"><img src="./morse_code.png" alt="Morse Code" class="w-full rounded-xl shadow-md object-cover"></div>
-        <div class="flex-1 space-y-4">
-            <h2 class="text-2xl font-bold text-gray-800">${t('morse_title')}</h2>
-            <p class="text-gray-600 leading-relaxed">${t('morse_desc_1')}</p>
-            <p class="text-gray-600 leading-relaxed">${t('morse_desc_2')}</p>
-            <p class="text-pink-600 font-medium italic">${t('morse_secret')}</p>
-        </div>
-    </div>
-    <div class="text-center mb-8"><h1 class="text-2xl md:text-4xl font-extrabold text-gray-900 mb-2">${t('hero_title')}</h1><p class="text-sm md:text-lg text-gray-600">${t('hero_sub')}</p></div>
-    <h2 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2">${t('collection')}</h2>
-    ${filteredProducts.length === 0 ? `<div class="text-center text-gray-500 py-12">No products found matching "${state.searchQuery}"</div>` : ''}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-      ${filteredProducts.map(p=>`
-      <article class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group" onclick="window._app.viewProduct(${p.id})">
-        <div class="overflow-hidden"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-64 md:h-48 object-cover transition duration-700 group-hover:scale-110" /></div>
-        <div class="p-4 flex flex-col flex-1">
-          <h3 class="text-lg font-semibold group-hover:text-pink-600 transition">${escapeHtml(p.name)}</h3>
-          <div class="mt-auto pt-4 flex items-center justify-between">
-            <div><span class="text-gray-400 line-through text-sm block">${p.originalPrice} ${t('original_price')}</span><strong class="text-pink-600 text-xl">${p.price.toFixed(2)} ${t('original_price')}</strong></div>
-            <button onclick="event.stopPropagation(); window._app.viewProduct(${p.id})" class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 shadow-md hover:shadow-lg transition">${t('customize')}</button>
-          </div>
-        </div>
-      </article>`).join('')}
-    </div>
-  </section>`;
-}
-
-function renderProductDetail() {
-  const mainProduct = findProduct(state.selectedProductId) || state.products[0];
-  const otherProducts = state.products.filter(p => p.id !== mainProduct.id);
-  return `
-  <section class="py-8 px-4 max-w-7xl mx-auto">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-        <div class="mb-6"><button onclick="window._app.nav('home')" class="text-gray-500 hover:text-pink-600 mb-4 inline-flex items-center gap-1">${state.lang==='ar' ? '&rarr;' : '&larr;'} ${t('back_shop')}</button><img src="${escapeHtml(mainProduct.image)}" alt="${escapeHtml(mainProduct.name)}" class="w-full h-96 object-cover rounded-lg shadow-sm"></div>
-        <h1 class="text-3xl font-extrabold text-gray-900 mb-2">${escapeHtml(mainProduct.name)}</h1>
-        <p class="text-gray-600 mb-6 text-lg leading-relaxed">${escapeHtml(mainProduct.description)}</p>
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
-            <label class="block text-sm font-bold text-gray-700 mb-2">${t('custom_title')} <span class="text-xs font-normal text-gray-500">${t('custom_limit')}</span></label>
-            <input type="text" maxlength="10" placeholder="Type name here (e.g., ANNA)..." class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:outline-none mb-3 text-lg" oninput="document.getElementById('morse-preview').textContent = window._app.translateToMorse(this.value)">
-            <div class="text-center"><span class="text-sm text-gray-500">${t('custom_hint')}</span><div id="morse-preview" class="text-3xl font-extrabold text-pink-600 mt-2 tracking-widest min-h-[40px]">...</div></div>
-        </div>
-        <div class="flex flex-col sm:flex-row items-center justify-between border-t pt-6 gap-4">
-          <div><span class="text-xl text-gray-400 line-through mr-2">${mainProduct.originalPrice} ${t('original_price')}</span><span class="text-4xl font-extrabold text-pink-600">${mainProduct.price.toFixed(2)} ${t('original_price')}</span></div>
-          <button onclick="window._app.addToCart(${mainProduct.id})" class="w-full sm:w-auto px-8 py-4 bg-pink-600 text-white text-lg font-bold rounded-lg shadow-lg hover:shadow-xl hover:bg-pink-700 transform transition hover:scale-105">${t('add_cart')}</button>
-        </div>
-      </div>
-      <div class="lg:col-span-1">
-        <h3 class="text-xl font-bold mb-4 text-gray-800">${t('you_like')}</h3>
-        <div class="space-y-4">
-          ${otherProducts.map(p => `<div class="bg-white rounded-lg shadow p-3 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition border border-transparent hover:border-pink-200" onclick="window._app.viewProduct(${p.id})"><img src="${escapeHtml(p.image)}" class="w-20 h-20 object-cover rounded" alt="${escapeHtml(p.name)}"><div><h4 class="font-semibold text-gray-800 text-sm">${escapeHtml(p.name)}</h4><div class="mt-1"><span class="text-sm font-bold text-pink-600">${p.price} ${t('original_price')}</span></div></div></div>`).join('')}
-        </div>
-      </div>
-    </div>
-  </section>`;
-}
-
-function renderGallery(){
-  return `
-  <section class="py-12 px-4 max-w-7xl mx-auto">
-    <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 text-center mb-4">${t('spotlight')}</h1>
-    <p class="text-center text-gray-500 mb-8">${t('spotlight_sub')}</p>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      ${state.products.map(p=>`<div class="bg-white rounded-xl shadow overflow-hidden group cursor-pointer relative" onclick="window._app.viewProduct(${p.id})"><div class="aspect-[1/1] overflow-hidden"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110" /></div><div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition flex items-center justify-center"><span class="opacity-0 group-hover:opacity-100 bg-white text-pink-600 px-4 py-2 rounded-full font-bold shadow-lg transform translate-y-4 group-hover:translate-y-0 transition">${t('shop_now')}</span></div></div>`).join('')}
-    </div>
-  </section>`;
-}
-
-function renderCart(){
-  const items = cartItems();
-  const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
-  const total = cartTotal();
-  const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
-  const shippingDisplay = shippingFee === 0 ? `<span class="text-green-600 font-bold">${t('free')}</span>` : `${shippingFee.toFixed(2)} ${t('original_price')}`;
-
-  if(items.length===0) return `<section class="py-12 px-4 max-w-3xl mx-auto text-center"><h2 class="text-2xl font-bold mb-4">${t('cart_empty')}</h2><button class="px-6 py-2 bg-pink-600 text-white rounded" onclick="window._app.nav('home')">${t('shop_now')}</button></section>`;
-  
-  return `
-  <section class="py-12 px-4 max-w-4xl mx-auto">
-    <h2 class="text-3xl font-bold mb-6">${t('your_cart')}</h2>
-    <div class="space-y-4">
-      ${items.map(it=>`<div class="flex items-center bg-white p-4 rounded-lg shadow"><img src="${escapeHtml(it.image)}" alt="${escapeHtml(it.name)}" class="w-20 h-20 object-cover rounded mr-4" /><div class="flex-1"><h3 class="font-semibold">${escapeHtml(it.name)}</h3><p class="text-gray-600">${it.price.toFixed(2)} ${t('original_price')}</p></div><div class="flex items-center space-x-4"><input data-cart-qty="${it.id}" type="number" min="1" value="${it.quantity}" class="w-16 p-2 border rounded" /><span class="text-lg font-bold">${it.subtotal.toFixed(2)}</span></div></div>`).join('')}
-    </div>
-    <div class="mt-8 pt-6 border-t border-gray-200">
-      <div class="flex justify-between items-center mb-2"><span class="text-gray-600">${t('subtotal')}</span><span class="font-bold">${subtotal.toFixed(2)} ${t('original_price')}</span></div>
-      <div class="flex justify-between items-center mb-2"><span class="text-gray-600">${t('shipping')}</span><span class="font-bold">${shippingDisplay}</span></div>
-      <div class="flex justify-between items-center text-xl mt-4 border-t pt-4"><h3 class="font-bold">${t('total')}</h3><div class="font-extrabold text-pink-600">${total.toFixed(2)} ${t('original_price')}</div></div>
-    </div>
-    <div class="mt-6 flex justify-end gap-4">
-      <button id="btn-clear-cart" class="px-6 py-3 border rounded">${t('clear_cart')}</button>
-      <button class="px-6 py-3 bg-pink-600 text-white rounded" onclick="window._app.nav('checkout')">${t('proceed')}</button>
-    </div>
-  </section>`;
-}
-
-function renderCheckout(){
-  const items = cartItems();
-  const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
-  const total = cartTotal();
-
-  if(items.length===0) return `<section class="py-12 px-4 max-w-2xl mx-auto text-center"><p class="text-lg">${t('cart_empty')}</p><div class="mt-4"><button class="px-4 py-2 bg-pink-600 text-white rounded" onclick="window._app.nav('home')">${t('shop_now')}</button></div></section>`;
-  
-  return `
-  <section class="py-12 px-4 max-w-4xl mx-auto">
-    <h2 class="text-3xl font-bold mb-6">${t('checkout_title')}</h2>
-    <form id="checkout-form" class="space-y-8" onsubmit="window._app.handleCheckoutSubmit(event)">
-      
-      <div class="bg-white p-6 rounded shadow">
-        <h3 class="font-bold text-lg mb-4 border-b pb-2">1. Personal Information</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label class="block text-sm font-medium text-gray-700">${t('full_name')}</label><input name="name" required class="mt-1 block w-full p-2 border rounded" /></div>
-            <div><label class="block text-sm font-medium text-gray-700">${t('phone_1')}</label><input name="phone1" type="tel" maxlength="11" required class="mt-1 block w-full p-2 border rounded" placeholder="01xxxxxxxxx" /></div>
-            <div><label class="block text-sm font-medium text-gray-700">${t('phone_2')}</label><input name="phone2" type="tel" class="mt-1 block w-full p-2 border rounded" /></div>
+            <button onclick="window._app.nav('home')" class="text-sm font-medium text-gray-700 hover:text-pink-600 uppercase cursor-pointer" id="nav-shop">Shop</button>
+            <button onclick="window._app.nav('gallery')" class="text-sm font-medium text-gray-700 hover:text-pink-600 cursor-pointer" id="nav-gallery">Gallery</button>
+            <button onclick="window._app.toggleLang()" class="px-2 py-1 border rounded text-xs hover:bg-gray-100 font-bold text-pink-600" id="lang-btn-desk">🌐 AR</button>
+            <button onclick="window._app.nav('cart')" class="relative p-2 text-gray-700 hover:text-pink-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
+              </svg>
+              <span id="cart-badge-desk" class="hidden absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-pink-600 rounded-full">0</span>
+            </button>
         </div>
       </div>
 
-      <div class="bg-white p-6 rounded shadow">
-        <h3 class="font-bold text-lg mb-4 border-b pb-2">2. ${t('address_section')}</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label class="block text-sm font-medium text-gray-700">${t('building_label')}</label><input name="building" required class="mt-1 block w-full p-2 border rounded" /></div>
-            <div><label class="block text-sm font-medium text-gray-700">${t('street_label')}</label><input name="street" required class="mt-1 block w-full p-2 border rounded" /></div>
-            <div><label class="block text-sm font-medium text-gray-700">${t('district_label')}</label><input name="district" required class="mt-1 block w-full p-2 border rounded" placeholder="e.g. Maadi" /></div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">${t('gov_label')}</label>
-                <select name="gov" required class="mt-1 block w-full p-2 border rounded bg-white"><option value="">Select...</option>${GOVERNORATES.map(g => `<option value="${g}">${g}</option>`).join('')}</select>
-            </div>
-            <div><label class="block text-sm font-medium text-gray-700">${t('floor_label')}</label><input name="floor" required class="mt-1 block w-full p-2 border rounded" /></div>
-            <div><label class="block text-sm font-medium text-gray-700">${t('apt_label')}</label><input name="apt" required class="mt-1 block w-full p-2 border rounded" /></div>
-        </div>
-      </div>
-      
-      <div class="bg-white p-6 rounded shadow">
-        <h3 class="font-bold text-lg mb-4 border-b pb-2">3. ${t('custom_title')}</h3>
-        <div class="bg-pink-50 p-3 rounded border border-pink-200">
-            <p class="text-xs text-gray-500 mb-2">${t('custom_hint')} ${t('custom_limit')}</p>
-            <textarea name="custom_text" required class="block w-full p-2 border rounded focus:ring-1 focus:ring-pink-500" placeholder="e.g. ANNA"></textarea>
-        </div>
-      </div>
+    </div>
+  </nav>
 
-      <div class="bg-white p-6 rounded shadow">
-        <h3 class="font-bold text-lg mb-4 border-b pb-2">4. ${t('payment_section')}</h3>
-        <div class="p-4 border rounded bg-gray-50 flex items-center gap-3">
-            <span class="text-2xl">💵</span>
-            <div>
-                <p class="font-bold text-gray-800">${t('pay_cod')}</p>
-                <p class="text-sm text-gray-500">${t('cod_desc')}</p>
-            </div>
-        </div>
-      </div>
+  <main id="main-content" class="flex-1"></main>
 
-      <div class="bg-gray-50 p-6 rounded shadow border-t-4 border-pink-600">
-        <div class="flex justify-between items-center text-xl font-bold mb-4"><span>${t('total')}</span><span class="text-pink-600">${total.toFixed(2)} ${t('original_price')}</span></div>
-        <button type="submit" class="w-full py-4 bg-green-600 text-white rounded text-lg font-bold hover:bg-green-700 shadow-lg">${t('place_order')}</button>
-        <div class="flex justify-center gap-4 mt-4 text-xs text-gray-500">
-            <div class="flex items-center gap-1"><span class="text-lg">🔒</span> ${t('secure_checkout')}</div>
-            <div class="flex items-center gap-1"><span class="text-lg">✅</span> ${t('easy_returns')}</div>
-        </div>
-      </div>
-    </form>
-  </section>`;
-}
-
-function renderContact(){ return `<section class="py-12 px-4 max-w-xl mx-auto"><h2 class="text-3xl font-bold mb-4 text-center">${t('contact_us')}</h2><form id="contact-form" class="bg-white p-6 rounded shadow space-y-4" onsubmit="window._app.handleContactSubmit(event)"><input name="name" placeholder="${t('full_name')}" required class="w-full p-2 border rounded" /><input name="phone" type="tel" placeholder="${t('phone_1')}" required class="w-full p-2 border rounded" /><textarea name="message" placeholder="Message..." required class="w-full p-2 border rounded"></textarea><div class="text-center"><button type="submit" class="px-6 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">${t('send_msg')}</button></div></form></section>`; }
-
-function renderFooter(){
-  return `
-  <footer class="bg-gray-800 text-white py-8 mt-8">
+  <footer class="bg-gray-800 text-white py-8 mt-auto">
     <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-      <div class="text-center md:text-left"><h4 class="text-xl font-bold">${t('title')}</h4><div class="text-sm text-gray-400 mt-1">&copy; 2025 ${t('footer_rights')}</div><button onclick="window._app.togglePolicyModal()" class="text-xs text-pink-400 hover:text-pink-300 mt-2 underline">${t('policy_link')}</button></div>
+      <div class="text-center md:text-left">
+        <h4 class="text-xl font-bold" id="footer-title">Morse Jewelry</h4>
+        <div class="text-sm text-gray-400 mt-1">&copy; 2025 All rights reserved.</div>
+        <button onclick="window._app.togglePolicyModal()" class="text-xs text-pink-400 hover:text-pink-300 mt-2 underline" id="footer-policy">Return & Delivery Policy</button>
+      </div>
       <div class="flex flex-col items-center md:items-end gap-3">
-        <p class="font-semibold mb-1">Socials:</p>
+        <p class="font-semibold mb-1" id="footer-socials">Socials:</p>
         <a href="https://wa.me/201281770085" target="_blank" class="flex items-center gap-2 hover:text-green-400"><span>WhatsApp: +201281770085</span></a>
         <a href="https://www.instagram.com/2annyyy" target="_blank" class="flex items-center gap-2 hover:text-pink-400"><span>Instagram: @2annyyy</span></a>
       </div>
     </div>
-  </footer>`;
-}
+  </footer>
 
-function renderSuccessModal() { if (!state.showSuccessModal) return ''; return `<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"><div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center modal-fade-in border-4 border-green-100"><div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6"><svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div><h3 class="text-2xl font-bold text-gray-900 mb-2">${t('order_success_title')}</h3><p class="text-gray-600 mb-8">${t('order_success_msg')}</p><button onclick="window._app.closeSuccessModal()" class="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition transform hover:scale-105">${t('close')}</button></div></div>`; }
+  <div id="flash-container"></div>
+  <div id="modal-container"></div>
 
-function renderPolicyModal() { if (!state.showPolicyModal) return ''; return `<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"><div class="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full modal-fade-in relative overflow-y-auto max-h-[80vh]"><button onclick="window._app.togglePolicyModal()" class="absolute top-4 right-4 text-gray-500 hover:text-black font-bold text-xl">&times;</button><h3 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">${t('policy_title')}</h3><div class="text-gray-700 space-y-4 text-sm leading-relaxed"><p><strong>1. Delivery:</strong> Standard delivery takes 3-5 business days. Expedited shipping is available upon request.</p><p><strong>2. Returns:</strong> Since our jewelry is personalized with Morse Code, returns are only accepted if the product arrives damaged or with an error in the encoding.</p><p><strong>3. Repairs:</strong> We offer a 30-day warranty on cords and clasps.</p><p><strong>4. Payment:</strong> We accept Cash on Delivery.</p></div><button onclick="window._app.togglePolicyModal()" class="w-full mt-6 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">${t('close')}</button></div></div>`; }
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-function render(){
-  updateTitle();
-  const readyClass = state.isAuthReady?'visible-ready':'hidden-until-ready';
-  root.className=readyClass;
-  let content = '';
-  if (state.page === 'home') content = renderHome();
-  else if (state.page === 'gallery') content = renderGallery();
-  else if (state.page === 'contact') content = renderContact();
-  else if (state.page === 'cart') content = renderCart();
-  else if (state.page === 'checkout') content = renderCheckout();
-  else if (state.page === 'product_detail') content = renderProductDetail();
-  const flashColorClass = state.messageType === 'success' ? 'bg-green-600' : 'bg-red-600';
-  root.innerHTML=`<div class="min-h-screen flex flex-col">${renderNavbar()}<main class="flex-1 bg-gray-50">${content}</main>${renderFooter()}${state.message ? `<div id="flash" class="flash-slide-in fixed top-6 left-1/2 transform -translate-x-1/2 ${flashColorClass} text-white px-8 py-3 rounded-full shadow-lg z-50 text-center font-medium">${escapeHtml(state.message)}</div>` : ''}${renderSuccessModal()}${renderPolicyModal()}</div>`;
-  document.querySelectorAll('[data-cart-qty]').forEach(input=>input.onchange=()=>{ const id=Number(input.getAttribute('data-cart-qty')); const value=parseInt(input.value)||0; updateQuantity(id,value); });
-  const clearBtn = document.getElementById('btn-clear-cart'); if(clearBtn) clearBtn.onclick=clearCart;
-}
+    // --- Firebase Config ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyDHRFiiklg8k8gmt1QGEstSM5hfTJvIZW8",
+      authDomain: "morse-code-jewelry.firebaseapp.com",
+      projectId: "morse-code-jewelry",
+      storageBucket: "morse-code-jewelry.firebasestorage.app",
+      messagingSenderId: "1034331508828",
+      appId: "1:1034331508828:web:08acf02e2363000e99d699",
+      measurementId: "G-C4WH6X1N1Z"
+    };
 
-async function handleCheckoutSubmit(evt){
-  evt.preventDefault();
-  const form = evt.target;
-  const name = form.name.value.trim();
-  const phone1 = form.phone1.value.trim();
-  const phone2 = form.phone2.value.trim();
-  const customText = form.custom_text.value.trim();
-  const building = form.building.value.trim();
-  const street = form.street.value.trim();
-  const district = form.district.value.trim();
-  const gov = form.gov.value;
-  const floor = form.floor.value.trim();
-  const apt = form.apt.value.trim();
-  
-  const fullAddress = `Bldg ${building}, ${street}, ${district}, ${gov}, Fl ${floor}, Apt ${apt}`;
-  const phoneRegex = /^\d{11}$/;
-  if (!phoneRegex.test(phone1)) { flashMessage(t('phone_error'), 'error'); return; }
-  if(!name || !phone1 || !gov || !district || !street || !building || !floor || !apt || !customText){ flashMessage(t('fill_fields'), 'error'); return; }
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  const subtotal = cartItems().reduce((s,it)=>s+it.subtotal,0);
-  let shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
-  let finalTotal = subtotal + shippingFee; 
+    // --- Configuration ---
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuMlTdvd8sJYjNni9vvFEXsgtk8nLjCNqpbDYyjGmMnBX22EK7l3DT86vGnCtCtQyF/exec";
+    const SHIPPING_COST = 100;
+    const FREE_SHIPPING_THRESHOLD = 1000;
+    const MORSE_CODE = { 'a': '.-', 'b': '-...', 'c': '-.-.', 'd': '-..', 'e': '.', 'f': '..-.', 'g': '--.', 'h': '....', 'i': '..', 'j': '.---', 'k': '-.-', 'l': '.-..', 'm': '--', 'n': '-.', 'o': '---', 'p': '.--.', 'q': '--.-', 'r': '.-.', 's': '...', 't': '-', 'u': '..-', 'v': '...-', 'w': '.--', 'x': '-..-', 'y': '-.--', 'z': '--..', '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----', ' ': ' / ' };
+    const GOVERNORATES = ["Cairo", "Giza", "Alexandria", "Dakahlia", "Red Sea", "Beheira", "Fayoum", "Gharbiya", "Ismailia", "Menofia", "Minya", "Qaliubiya", "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said", "Damietta", "Sharkia", "South Sinai", "Kafr Al Sheikh", "Matrouh", "Luxor", "Qena", "North Sinai", "Sohag"];
 
-  const orderData = { 
-      name, phone1, phone2, address: fullAddress, customText, 
-      items: cartItems(), totalPrice: finalTotal, shippingFee, 
-      paymentMethod: 'COD', receiptImage: null, currency: 'EGP' 
-  };
-  
-  const success = await submitOrderToFirestore(orderData);
-  if(success){ clearCart(); state.page='home'; showSuccessModal(); }
-}
+    // --- State ---
+    let currentUserId = null;
+    const state = {
+      lang: 'en',
+      page: 'home',
+      cart: [],
+      selectedProductId: null,
+      searchQuery: '',
+      paymentMethod: 'cod',
+      products: [
+        { id: 1, name: 'Gold Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
+        { id: 2, name: 'Gold Morse Code Bracelet', price: 550, originalPrice: 900, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
+        { id: 3, name: 'Silver Morse Code Necklace', price: 750, originalPrice: 1100, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
+        { id: 4, name: 'Silver Cord Bracelet Set', price: 550, originalPrice: 900, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
+      ]
+    };
 
-async function handleContactSubmit(evt){
-  evt.preventDefault();
-  const form = evt.target;
-  const name = form.name.value.trim();
-  const phone = form.phone.value.trim();
-  const message = form.message.value.trim();
-  if(!name || !phone || !message){ flashMessage(t('fill_fields'), 'error'); return; }
-  const contactData = { name, phone, message };
-  const success = await submitContactToFirestore(contactData);
-  if(success){ form.reset(); }
-}
+    // --- Translations ---
+    const t_data = {
+      en: { title: "Morse Jewelry", shop: "Shop", gallery: "Gallery", contact: "Contact", search_placeholder: "Search items...", shipping_banner: "🚚 Free shipping on orders over 1000 EGP!", cart_empty: "Your cart is empty", shop_now: "Shop Now", customize: "Customize", add_cart: "Add to Cart", free: "FREE", total: "Total", original_price: "EGP", payment_section: "Payment Method", pay_cod: "Cash on Delivery", cod_desc: "Pay securely when you receive your order.", checkout_title: "Secure Checkout", place_order: "Place Order", policy_title: "Return & Delivery Policy", policy_link: "Return & Delivery Policy", secure_checkout: "Secure Checkout", easy_returns: "Easy Returns", customer_support: "Customer Support", full_name: "Full Name", phone_1: "Phone Number (11 digits)", phone_2: "Backup Phone (Optional)", address_section: "Delivery Address", gov_label: "Governorate", district_label: "Area Name", street_label: "Street Name", building_label: "Building No.", floor_label: "Floor No.", apt_label: "Apartment No.", custom_title: "Personalize Your Secret Message", custom_hint: "Type name to see Morse preview:", custom_limit: "(Max 10 chars)", contact_us: "Contact Us", send_msg: "Send Message", your_cart: "Your Shopping Cart", subtotal: "Subtotal", shipping: "Shipping Fees", clear_cart: "Clear Cart", proceed: "Proceed to Checkout", back_shop: "Back to Shop", you_like: "You might also like", spotlight: "Customer Spotlight Gallery", spotlight_sub: "Click on any photo to shop the look!", morse_title: "What is Morse Code?", morse_desc_1: "Morse code encodes text characters as sequences of dots (.) and dashes (-).", morse_desc_2: "We use Round Beads for Dots and Long Beads for Dashes.", morse_secret: "It's a secret message only you understand!", hero_title: "Express Yourself in Secret", hero_sub: "Beautiful jewelry with a hidden meaning.", collection: "Our Collection", order_success_title: "Order Successful! 🎉", order_success_msg: "Thank you! We have received your order and will contact you shortly.", close: "Close", phone_error: "Phone number must be exactly 11 digits", fill_fields: "Please fill all required fields", added_cart: "Added to cart", order_failed: "Order failed" },
+      ar: { title: "مورس للمجوهرات", shop: "المتجر", gallery: "المعرض", contact: "تواصل معنا", search_placeholder: "ابحث عن منتج...", shipping_banner: "🚚 شحن مجاني للطلبات فوق ١٠٠٠ ج.م!", cart_empty: "سلة التسوق فارغة", shop_now: "تسوق الآن", customize: "تخصيص", add_cart: "أضف للسلة", free: "مجاني", total: "الإجمالي", original_price: "ج.م", payment_section: "طريقة الدفع", pay_cod: "دفع عند الاستلام", cod_desc: "الدفع بأمان عند استلام الطلب.", checkout_title: "دفع آمن", place_order: "تأكيد الطلب", policy_title: "سياسة الاسترجاع والشحن", policy_link: "سياسة الاسترجاع والشحن", secure_checkout: "دفع آمن", easy_returns: "سهولة الاسترجاع", customer_support: "دعم فني", full_name: "الاسم بالكامل", phone_1: "رقم الهاتف (١١ رقم)", phone_2: "رقم هاتف آخر (اختياري)", address_section: "عنوان التوصيل", gov_label: "المحافظة", district_label: "اسم المنطقة", street_label: "اسم الشارع", building_label: "رقم المبنى", floor_label: "رقم الدور", apt_label: "رقم الشقة", custom_title: "خصص رسالتك السرية", custom_hint: "اكتب الاسم لرؤية شكل شفرة مورس:", custom_limit: "(حد أقصى ١٠ حروف)", contact_us: "اتصل بنا", send_msg: "إرسال الرسالة", your_cart: "سلة التسوق", subtotal: "المجموع الفرعي", shipping: "مصاريف الشحن", clear_cart: "إفراغ السلة", proceed: "إتمام الشراء", back_shop: "العودة للمتجر", you_like: "قد يعجبك أيضاً", spotlight: "معرض صور العملاء", spotlight_sub: "اضغط على أي صورة لشراء نفس المنتج!", morse_title: "ما هي شفرة مورس؟", morse_desc_1: "شفرة مورس تحول الحروف إلى نقاط (.) وشرطات (-).", morse_desc_2: "نستخدم الخرز الدائري للنقاط والخرز الطويل للشرطات.", morse_secret: "إنها رسالة سرية لا يفهمها إلا أنت!", hero_title: "عبر عن نفسك بسرية", hero_sub: "مجوهرات جميلة تحمل معنى خفي", collection: "مجموعتنا المميزة", order_success_title: "تم الطلب بنجاح! 🎉", order_success_msg: "شكراً لك! لقد استلمنا طلبك وسنتواصل معك قريباً.", close: "إغلاق", phone_error: "يجب أن يتكون رقم الهاتف من ١١ رقماً", fill_fields: "يرجى ملء جميع البيانات المطلوبة", added_cart: "تمت الإضافة", order_failed: "فشل الطلب" }
+    };
 
-window._app={state, addToCart, viewProduct, updateQuantity, clearCart, cartItems, cartTotal, toggleLang, translateToMorse, handleSearch, render, closeSuccessModal, togglePolicyModal, nav, handleCheckoutSubmit, handleContactSubmit};
+    function t(key) { return t_data[state.lang][key] || key; }
 
-render();
-</script>
+    // --- Core Functions ---
+    function updateStaticUI() {
+        // Updates the "Static" parts of the HTML (Navbar/Footer)
+        const cartCount = state.cart.reduce((s,i)=>s+i.quantity,0);
+        document.getElementById('shipping-banner').innerText = t('shipping_banner');
+        document.getElementById('nav-title').innerText = t('title');
+        document.getElementById('nav-shop').innerText = t('shop');
+        document.getElementById('nav-gallery').innerText = t('gallery');
+        document.getElementById('footer-title').innerText = t('title');
+        document.getElementById('footer-policy').innerText = t('policy_link');
+        document.getElementById('search-input').placeholder = t('search_placeholder');
+        
+        // Buttons Labels
+        const langLabel = state.lang === 'en' ? '🌐 AR' : '🌐 EN';
+        document.getElementById('lang-btn-mob').innerText = langLabel;
+        document.getElementById('lang-btn-desk').innerText = langLabel;
+
+        // Cart Badges
+        const badgeMob = document.getElementById('cart-badge-mob');
+        const badgeDesk = document.getElementById('cart-badge-desk');
+        if(cartCount > 0) {
+            badgeMob.innerText = cartCount; badgeMob.classList.remove('hidden');
+            badgeDesk.innerText = cartCount; badgeDesk.classList.remove('hidden');
+        } else {
+            badgeMob.classList.add('hidden');
+            badgeDesk.classList.add('hidden');
+        }
+
+        // Direction
+        document.body.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
+        if(state.lang === 'ar') document.body.classList.add('font-arabic');
+        else document.body.classList.remove('font-arabic');
+    }
+
+    function toggleLang() {
+        state.lang = state.lang === 'en' ? 'ar' : 'en';
+        updateStaticUI();
+        renderMain(); // Re-render content in new language
+    }
+
+    function nav(page) {
+        state.page = page;
+        renderMain();
+        window.scrollTo(0,0);
+    }
+
+    function handleSearch(evt) {
+        state.searchQuery = evt.target.value.toLowerCase();
+        if(state.page !== 'home') state.page = 'home';
+        renderMain();
+    }
+
+    function addToCart(productId) {
+        const existing = state.cart.find(i => i.productId === productId);
+        if(existing) existing.quantity++; else state.cart.push({productId, quantity:1});
+        flashMessage(t('added_cart'), 'success');
+        updateStaticUI(); // Update badge
+    }
+
+    // --- Render Components (Dynamic) ---
+    function renderHome() {
+        const filtered = state.products.filter(p => p.name.toLowerCase().includes(state.searchQuery));
+        return `
+        <section class="py-6 px-4 max-w-7xl mx-auto fade-enter-active">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-12 mb-12 flex flex-col md:flex-row items-center gap-8">
+                <div class="flex-1 w-full"><img src="./morse_code.png" alt="Morse Code" class="w-full rounded-xl shadow-md object-cover"></div>
+                <div class="flex-1 space-y-4">
+                    <h2 class="text-2xl font-bold text-gray-800">${t('morse_title')}</h2>
+                    <p class="text-gray-600">${t('morse_desc_1')}</p>
+                    <p class="text-gray-600">${t('morse_desc_2')}</p>
+                    <p class="text-pink-600 font-medium italic">${t('morse_secret')}</p>
+                </div>
+            </div>
+            <div class="text-center mb-8"><h1 class="text-3xl font-extrabold text-gray-900 mb-2">${t('hero_title')}</h1><p class="text-lg text-gray-600">${t('hero_sub')}</p></div>
+            <h2 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2">${t('collection')}</h2>
+            ${filtered.length === 0 ? `<div class="text-center py-12 text-gray-500">No products match "${state.searchQuery}"</div>` : ''}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                ${filtered.map(p => `
+                <article class="bg-white rounded-xl shadow-sm overflow-hidden cursor-pointer hover:shadow-xl transition group" onclick="window._app.viewProduct(${p.id})">
+                    <div class="overflow-hidden"><img src="${escapeHtml(p.image)}" class="w-full h-64 object-cover transition duration-700 group-hover:scale-110"></div>
+                    <div class="p-4 flex flex-col">
+                        <h3 class="font-semibold text-lg">${escapeHtml(p.name)}</h3>
+                        <div class="mt-4 flex justify-between items-center">
+                            <div><span class="text-gray-400 text-sm line-through block">${p.originalPrice} ${t('original_price')}</span><span class="text-pink-600 font-bold text-xl">${p.price} ${t('original_price')}</span></div>
+                            <button onclick="event.stopPropagation(); window._app.viewProduct(${p.id})" class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700">${t('customize')}</button>
+                        </div>
+                    </div>
+                </article>
+                `).join('')}
+            </div>
+        </section>`;
+    }
+
+    function renderProductDetail() {
+        const p = state.products.find(x => x.id === state.selectedProductId);
+        if(!p) return nav('home');
+        const others = state.products.filter(x => x.id !== p.id);
+        
+        return `
+        <section class="py-8 px-4 max-w-7xl mx-auto fade-enter-active">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                    <button onclick="window._app.nav('home')" class="text-gray-500 mb-4 flex items-center gap-1 hover:text-pink-600">${state.lang==='ar'?'&rarr;':'&larr;'} ${t('back_shop')}</button>
+                    <img src="${escapeHtml(p.image)}" class="w-full h-96 object-cover rounded-lg shadow-sm mb-6">
+                    <h1 class="text-3xl font-extrabold text-gray-900 mb-2">${escapeHtml(p.name)}</h1>
+                    <p class="text-gray-600 mb-6">${escapeHtml(p.description)}</p>
+                    
+                    <div class="bg-gray-50 p-6 rounded-xl border mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">${t('custom_title')}</label>
+                        <input type="text" maxlength="10" placeholder="Type Name (e.g. ANNA)" class="w-full p-3 border rounded text-lg uppercase" oninput="document.getElementById('mp').innerText = window._app.toMorse(this.value)">
+                        <div class="text-center mt-2"><span class="text-sm text-gray-500">${t('custom_hint')}</span><div id="mp" class="text-3xl font-bold text-pink-600 mt-1 min-h-[40px]">...</div></div>
+                    </div>
+
+                    <div class="flex justify-between items-center border-t pt-6">
+                        <div><span class="line-through text-gray-400 mr-2">${p.originalPrice}</span><span class="text-3xl font-bold text-pink-600">${p.price} ${t('original_price')}</span></div>
+                        <button onclick="window._app.addToCart(${p.id})" class="px-8 py-3 bg-pink-600 text-white rounded-lg font-bold hover:scale-105 transition shadow-lg">${t('add_cart')}</button>
+                    </div>
+                </div>
+                <div class="lg:col-span-1">
+                    <h3 class="font-bold text-xl mb-4">${t('you_like')}</h3>
+                    <div class="space-y-4">
+                        ${others.map(o => `<div class="flex items-center gap-4 bg-white p-3 rounded shadow cursor-pointer hover:bg-gray-50" onclick="window._app.viewProduct(${o.id})"><img src="${escapeHtml(o.image)}" class="w-16 h-16 object-cover rounded"><div><h4 class="font-bold text-sm">${escapeHtml(o.name)}</h4><span class="text-pink-600 text-sm font-bold">${o.price}</span></div></div>`).join('')}
+                    </div>
+                </div>
+            </div>
+        </section>`;
+    }
+
+    function renderCart() {
+        const items = state.cart.map(c => { const p=state.products.find(x=>x.id===c.productId); return p ? {...p, qty:c.quantity, sub: p.price*c.quantity} : null }).filter(Boolean);
+        const sub = items.reduce((a,b)=>a+b.sub,0);
+        const ship = sub >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+        const total = sub + ship;
+
+        if(items.length===0) return `<div class="text-center py-20"><h2 class="text-2xl font-bold mb-4">${t('cart_empty')}</h2><button onclick="window._app.nav('home')" class="px-6 py-2 bg-pink-600 text-white rounded">${t('shop_now')}</button></div>`;
+
+        return `
+        <section class="py-12 px-4 max-w-4xl mx-auto fade-enter-active">
+            <h2 class="text-3xl font-bold mb-6">${t('your_cart')}</h2>
+            <div class="space-y-4 mb-8">
+                ${items.map(i => `<div class="flex items-center bg-white p-4 rounded shadow"><img src="${escapeHtml(i.image)}" class="w-20 h-20 object-cover rounded mr-4"><div class="flex-1"><h3 class="font-bold">${escapeHtml(i.name)}</h3><p class="text-gray-500">${i.price}</p></div><div class="font-bold text-lg">${i.sub}</div></div>`).join('')}
+            </div>
+            <div class="bg-white p-6 rounded shadow">
+                <div class="flex justify-between mb-2"><span>${t('subtotal')}</span><span class="font-bold">${sub}</span></div>
+                <div class="flex justify-between mb-2"><span>${t('shipping')}</span><span class="font-bold ${ship===0?'text-green-600':''}">${ship===0?t('free'):ship}</span></div>
+                <div class="flex justify-between text-xl font-bold border-t pt-4"><span>${t('total')}</span><span class="text-pink-600">${total} ${t('original_price')}</span></div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button onclick="window._app.clearCart()" class="px-4 py-2 border rounded">${t('clear_cart')}</button>
+                    <button onclick="window._app.nav('checkout')" class="px-6 py-2 bg-pink-600 text-white rounded font-bold">${t('proceed')}</button>
+                </div>
+            </div>
+        </section>`;
+    }
+
+    function renderCheckout() {
+        const items = state.cart.map(c => { const p=state.products.find(x=>x.id===c.productId); return p ? {...p, qty:c.quantity, sub: p.price*c.quantity} : null }).filter(Boolean);
+        const sub = items.reduce((a,b)=>a+b.sub,0);
+        const ship = sub >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+        const total = sub + ship;
+
+        return `
+        <section class="py-12 px-4 max-w-3xl mx-auto fade-enter-active">
+            <h2 class="text-3xl font-bold mb-6">${t('checkout_title')}</h2>
+            <form id="checkout-form" class="space-y-6" onsubmit="window._app.submitOrder(event)">
+                <div class="bg-white p-6 rounded shadow space-y-4">
+                    <h3 class="font-bold border-b pb-2">1. Personal Details</h3>
+                    <input name="name" placeholder="${t('full_name')}" class="w-full p-2 border rounded" required>
+                    <div class="flex gap-4">
+                        <input name="phone1" placeholder="${t('phone_1')}" class="w-full p-2 border rounded" required type="tel" maxlength="11">
+                        <input name="phone2" placeholder="${t('phone_2')}" class="w-full p-2 border rounded" type="tel">
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded shadow space-y-4">
+                    <h3 class="font-bold border-b pb-2">2. ${t('address_section')}</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <select name="gov" class="p-2 border rounded bg-white" required><option value="">${t('gov_label')}</option>${GOVERNORATES.map(g=>`<option value="${g}">${g}</option>`).join('')}</select>
+                        <input name="district" placeholder="${t('district_label')}" class="p-2 border rounded" required>
+                        <input name="street" placeholder="${t('street_label')}" class="col-span-2 p-2 border rounded" required>
+                        <input name="building" placeholder="${t('building_label')}" class="p-2 border rounded" required>
+                        <div class="flex gap-2"><input name="floor" placeholder="${t('floor_label')}" class="w-1/2 p-2 border rounded" required><input name="apt" placeholder="${t('apt_label')}" class="w-1/2 p-2 border rounded" required></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded shadow space-y-4">
+                    <h3 class="font-bold border-b pb-2">3. ${t('custom_title')}</h3>
+                    <div class="bg-pink-50 p-3 rounded border border-pink-200">
+                        <label class="text-xs text-gray-500">${t('custom_hint')} ${t('custom_limit')}</label>
+                        <textarea name="custom" required class="w-full p-2 border rounded" placeholder="e.g. ANNA"></textarea>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded shadow">
+                    <h3 class="font-bold border-b pb-2 mb-4">4. ${t('payment_section')}</h3>
+                    <div class="p-4 border rounded bg-gray-50 flex items-center gap-3">
+                        <span class="text-2xl">💵</span>
+                        <div><p class="font-bold text-gray-800">${t('pay_cod')}</p><p class="text-xs text-gray-500">${t('cod_desc')}</p></div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-6 rounded shadow border-t-4 border-pink-600">
+                    <div class="flex justify-between text-xl font-bold mb-4"><span>${t('total')}</span><span class="text-pink-600">${total} ${t('original_price')}</span></div>
+                    <button type="submit" class="w-full py-4 bg-green-600 text-white rounded font-bold hover:bg-green-700 shadow-lg">${t('place_order')}</button>
+                </div>
+            </form>
+        </section>`;
+    }
+
+    function renderGallery() {
+        return `
+        <section class="py-12 px-4 max-w-7xl mx-auto text-center fade-enter-active">
+            <h1 class="text-3xl font-bold mb-4">${t('spotlight')}</h1><p class="text-gray-500 mb-8">${t('spotlight_sub')}</p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                ${state.products.map(p => `<div class="aspect-square relative group overflow-hidden rounded-xl shadow cursor-pointer" onclick="window._app.viewProduct(${p.id})"><img src="${escapeHtml(p.image)}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110"><div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><span class="bg-white px-4 py-2 rounded-full font-bold text-pink-600">${t('shop_now')}</span></div></div>`).join('')}
+            </div>
+        </section>`;
+    }
+
+    function renderContact() {
+        return `
+        <section class="py-12 px-4 max-w-lg mx-auto fade-enter-active">
+            <h2 class="text-3xl font-bold text-center mb-6">${t('contact_us')}</h2>
+            <form onsubmit="window._app.submitContact(event)" class="bg-white p-6 rounded shadow space-y-4">
+                <input name="name" placeholder="${t('full_name')}" class="w-full p-2 border rounded" required>
+                <input name="phone" placeholder="${t('phone_1')}" class="w-full p-2 border rounded" required>
+                <textarea name="msg" placeholder="Message..." class="w-full p-2 border rounded" required></textarea>
+                <button class="w-full py-2 bg-pink-600 text-white rounded font-bold">${t('send_msg')}</button>
+            </form>
+        </section>`;
+    }
+
+    // --- Main Render Loop ---
+    function renderMain() {
+        const main = document.getElementById('main-content');
+        if(state.page === 'home') main.innerHTML = renderHome();
+        else if(state.page === 'cart') main.innerHTML = renderCart();
+        else if(state.page === 'checkout') main.innerHTML = renderCheckout();
+        else if(state.page === 'product_detail') main.innerHTML = renderProductDetail();
+        else if(state.page === 'gallery') main.innerHTML = renderGallery();
+        else if(state.page === 'contact') main.innerHTML = renderContact();
+        updateStaticUI();
+    }
+
+    // --- Actions ---
+    async function submitOrder(evt) {
+        evt.preventDefault();
+        const f = evt.target;
+        const phone = f.phone1.value.trim();
+        if(!/^\d{11}$/.test(phone)) { alert(t('phone_error')); return; }
+        
+        const items = state.cart.map(c => { const p=state.products.find(x=>x.id===c.productId); return p ? {...p, qty:c.quantity, sub: p.price*c.quantity} : null }).filter(Boolean);
+        const sub = items.reduce((a,b)=>a+b.sub,0);
+        const ship = sub >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+        
+        const orderData = {
+            name: f.name.value, phone1: phone, phone2: f.phone2.value,
+            address: `Bldg ${f.building.value}, ${f.street.value}, ${f.district.value}, ${f.gov.value}, Fl ${f.floor.value}, Apt ${f.apt.value}`,
+            customText: f.custom.value, items: items, totalPrice: sub + ship, shippingFee: ship, paymentMethod: 'COD', currency: 'EGP'
+        };
+
+        if(!currentUserId) { alert("System connecting..."); return; }
+        
+        try {
+            await addDoc(collection(db,'orders'), {...orderData, userId:currentUserId, timestamp:serverTimestamp()});
+            if(GOOGLE_SCRIPT_URL) fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers:{"Content-Type":"application/json"}, body: JSON.stringify(orderData) }).catch(console.error);
+            
+            state.cart = []; 
+            state.page = 'home';
+            document.getElementById('modal-container').innerHTML = `
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div class="bg-white p-8 rounded-xl shadow-2xl text-center max-w-sm m-4">
+                    <div class="text-5xl mb-4">🎉</div>
+                    <h3 class="text-2xl font-bold mb-2">${t('order_success_title')}</h3>
+                    <p class="text-gray-600 mb-6">${t('order_success_msg')}</p>
+                    <button onclick="document.getElementById('modal-container').innerHTML=''" class="w-full py-2 bg-gray-900 text-white rounded font-bold">${t('close')}</button>
+                </div>
+            </div>`;
+            renderMain();
+        } catch(e) { console.error(e); alert(t('order_failed')); }
+    }
+
+    // --- Init ---
+    window._app = { 
+        state, nav, toggleLang, handleSearch, viewProduct, addToCart, clearCart, 
+        toMorse: translateToMorse, submitOrder, 
+        togglePolicyModal: () => {
+            const el = document.getElementById('modal-container');
+            if(el.innerHTML) el.innerHTML = ''; 
+            else el.innerHTML = `<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><div class="bg-white p-6 rounded-xl max-w-lg w-full relative overflow-y-auto max-h-[80vh]"><button onclick="document.getElementById('modal-container').innerHTML=''" class="absolute top-4 right-4 font-bold text-xl">&times;</button><h3 class="font-bold text-xl mb-4">${t('policy_title')}</h3><div class="space-y-2 text-sm"><p><strong>Delivery:</strong> 3-5 Business Days.</p><p><strong>Returns:</strong> Only for damaged items (Customized).</p><p><strong>Warranty:</strong> 30 Days on clasps.</p></div></div></div>`;
+        },
+        submitContact: async (e) => {
+            e.preventDefault();
+            const data = { name: e.target.name.value, phone: e.target.phone.value, msg: e.target.msg.value };
+            await addDoc(collection(db,'contact_messages'), {...data, userId:currentUserId, timestamp:serverTimestamp()});
+            e.target.reset(); alert("Message Sent!");
+        }
+    };
+
+    updateStaticUI();
+    renderMain();
+  </script>
 </body>
 </html>
