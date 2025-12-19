@@ -1,53 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  
-  <title>Morse Jewelry | Luxury Personalized Gifts</title>
-  <meta property="og:title" content="Morse Jewelry - Personalized Secret Messages" />
-  <meta property="og:description" content="Handcrafted jewelry encoding secret messages in dots and dashes." />
-  <meta property="og:image" content="./morse_logo_transparent.png" />
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="icon" href="./morse_logo_transparent.png" type="image/png">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Oswald:wght@400;500;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-
-  <style>
-    /* Typography & Base */
-    :root { --primary: #1a1a1a; --accent: #db2777; --gold: #C5A059; }
-    body { font-family: 'Jost', sans-serif; letter-spacing: 0.02em; color: var(--primary); background-color: #FAFAFA; }
-    h1, h2, h3, h4, .font-heading { font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 0.05em; }
-    .font-arabic { font-family: 'Cairo', sans-serif; }
-    
-    /* Animations */
-    .fade-in { animation: fadeIn 0.6s ease-out forwards; opacity: 0; transform: translateY(10px); }
-    @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
-    
-    /* Image Hover Zoom Effect */
-    .img-zoom-container { overflow: hidden; }
-    .img-zoom-container img { transition: transform 0.7s ease; }
-    .img-zoom-container:hover img { transform: scale(1.1); }
-
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
-  </style>
-</head>
-<body class="flex flex-col min-h-screen">
-
-<div id="root" class="flex-1 flex flex-col">
-    <div class="flex h-screen items-center justify-center bg-white z-50">
-        <div class="text-center">
-            <img src="./morse_logo_transparent.png" class="h-24 w-auto mx-auto animate-pulse opacity-80">
-            <p class="mt-4 text-xs tracking-[0.3em] text-gray-400 uppercase">Loading Experience</p>
-        </div>
-    </div>
-</div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
@@ -68,7 +18,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// >>> YOUR GOOGLE SCRIPT URL <<<
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuMlTdvd8sJYjNni9vvFEXsgtk8nLjCNqpbDYyjGmMnBX22EK7l3DT86vGnCtCtQyF/exec";
 
 const SHIPPING_COST = 100;
@@ -92,8 +41,10 @@ const t_data = {
 let currentUserId = null;
 const state = {
   lang: 'en', page: 'home', cart: [], selectedProductId: null, searchQuery: '', showSuccessModal: false, showPolicyModal: false, showSizeGuide: false,
+  // Added drafts to preserve input when toggling Size Guide
+  draftMessage: '', 
+  draftLength: '18',
   products: [
-    // Added 'category: necklace' to trigger the size feature
     { id: 1, name: 'Gold Morse Necklace', category: 'necklace', price: 750, originalPrice: 1100, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
     { id: 2, name: 'Gold Morse Bracelet', category: 'bracelet', price: 550, originalPrice: 900, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
     { id: 3, name: 'Silver Morse Necklace', category: 'necklace', price: 750, originalPrice: 1100, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
@@ -115,28 +66,37 @@ function toggleLang() {
 function toMorse(text) { return text.toLowerCase().split('').map(char => MORSE_CODE[char] || char).join(' '); }
 function findProduct(id) { return state.products.find(p=>p.id===Number(id)); }
 
-// Updated AddToCart to handle Customizations
-function addToCart(productId, customText = "", length = "") { 
-    // Create a unique key for items with different options
-    const product = findProduct(productId);
-    
-    // We simply push to cart. In a simple app, we won't stack different customizations to avoid complex UI logic.
+// State setters to keep inputs alive during re-renders
+function setDraftMessage(val) {
+    state.draftMessage = val;
+    const mp = document.getElementById('mp');
+    if(mp) mp.innerText = toMorse(val);
+}
+function setDraftLength(val) { state.draftLength = val; }
+
+function addToCart(productId) { 
+    // We grab from state now, not DOM, ensuring reliability
+    const customText = state.draftMessage;
+    const length = state.draftLength ? state.draftLength + '"' : "Standard";
+
+    if(!customText) { flashMessage(t('fill_fields'), 'error'); return; }
+
     state.cart.push({
         productId, 
         quantity: 1, 
-        customText: customText || "Default", 
-        length: length || "Standard"
+        customText: customText, 
+        length: length
     });
     
+    // Reset drafts
+    state.draftMessage = '';
+    state.draftLength = '18';
+
     flashMessage(t('added_cart'), 'success'); 
     render(); 
 }
 
-function removeCartItem(index) {
-    state.cart.splice(index, 1);
-    render();
-}
-
+function removeCartItem(index) { state.cart.splice(index, 1); render(); }
 function clearCart() { state.cart=[]; render(); }
 function cartItems() { 
     return state.cart.map((c, index) => { 
@@ -145,18 +105,59 @@ function cartItems() {
         return { ...p, ...c, cartIndex: index, sub: p.price * c.quantity }; 
     }).filter(Boolean); 
 }
-function cartTotal() { const sub = cartItems().reduce((s,it)=>s+it.sub,0); if (sub === 0) return 0; return sub >= FREE_SHIPPING_THRESHOLD ? sub : sub + SHIPPING_COST; }
 
 let flashTimer = null;
 function flashMessage(msg, type='success', ms=3000){ state.message = msg; state.messageType = type; render(); if(flashTimer) clearTimeout(flashTimer); flashTimer=setTimeout(()=>{state.message=''; render();}, ms); }
 
-function viewProduct(id) { state.selectedProductId = Number(id); state.page = 'product_detail'; render(); window.scrollTo(0,0); }
-function handleSearch(evt) { state.searchQuery = evt.target.value.toLowerCase(); if(state.page !== 'home') state.page = 'home'; render(); }
+function viewProduct(id) { 
+    state.selectedProductId = Number(id); 
+    state.draftMessage = ''; // Reset when viewing new product
+    state.draftLength = '18';
+    state.page = 'product_detail'; 
+    render(); 
+    window.scrollTo(0,0); 
+}
+
+// Improved Search: Manipulates DOM directly for performance (prevents focus loss)
+function handleSearch(evt) { 
+    state.searchQuery = evt.target.value.toLowerCase(); 
+    
+    if(state.page !== 'home') {
+        state.page = 'home';
+        render();
+        // Restore focus after render if we switched pages
+        const input = document.querySelector('input[type="text"]');
+        if(input) {
+            input.value = state.searchQuery;
+            input.focus();
+        }
+        return;
+    }
+
+    // Direct DOM manipulation for smooth filtering
+    const products = document.querySelectorAll('.product-card');
+    let hasResults = false;
+    products.forEach(card => {
+        const name = card.getAttribute('data-name').toLowerCase();
+        if(name.includes(state.searchQuery)) {
+            card.style.display = 'block';
+            hasResults = true;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Toggle "No results" message
+    const emptyMsg = document.getElementById('empty-msg');
+    if(emptyMsg) emptyMsg.style.display = hasResults ? 'none' : 'block';
+}
 
 // --- AUTH ---
 onAuthStateChanged(auth, user => {
-    if (user) { currentUserId = user.uid; render(); } 
-    else { signInAnonymously(auth).then(cred => { currentUserId = cred.user.uid; render(); }); }
+    if (user) { currentUserId = user.uid; } 
+    else { signInAnonymously(auth).then(cred => { currentUserId = cred.user.uid; }); }
+    // Initial render moved here to ensure auth doesn't cause double render flicker
+    render();
 });
 
 // --- BACKEND ---
@@ -172,7 +173,6 @@ async function submitOrder(evt) {
     const ship = sub >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
     const total = sub + ship;
 
-    // Format items for Google Sheet to include Custom Text and Length
     const formattedItems = cartItems().map(item => {
         let details = item.name;
         if(item.customText) details += ` [Msg: ${item.customText}]`;
@@ -243,7 +243,7 @@ function renderNavbar() {
 }
 
 function renderHome() {
-    const filtered = state.products.filter(p => p.name.toLowerCase().includes(state.searchQuery));
+    // Note: We render ALL products initially for the DOM filter to work
     return `
     <section class="fade-in">
         <div class="relative bg-gray-100 py-16 px-4 mb-16 text-center">
@@ -267,14 +267,13 @@ function renderHome() {
 
             <div class="flex items-center justify-between mb-8 border-b border-gray-200 pb-4">
                 <h2 class="text-xl font-bold text-gray-900 tracking-widest">${t('collection')}</h2>
-                <span class="text-xs text-gray-500 uppercase tracking-widest">${filtered.length} Items</span>
             </div>
             
-            ${filtered.length===0 ? `<div class="text-center py-20 text-gray-400 font-light tracking-wide">No treasures found</div>` : ''}
+            <div id="empty-msg" class="text-center py-20 text-gray-400 font-light tracking-wide hidden">No treasures found</div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 mb-24">
-                ${filtered.map(p => `
-                <article class="group cursor-pointer" onclick="window._app.viewProduct(${p.id})">
+                ${state.products.map(p => `
+                <article class="product-card group cursor-pointer" data-name="${p.name}" onclick="window._app.viewProduct(${p.id})">
                     <div class="img-zoom-container bg-gray-50 aspect-[4/5] mb-4 relative overflow-hidden">
                         <img src="${escapeHtml(p.image)}" class="w-full h-full object-cover">
                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-500"></div>
@@ -298,10 +297,9 @@ function renderHome() {
 function renderProductDetail() {
     const p = state.products.find(x => x.id === state.selectedProductId);
     const others = state.products.filter(x => x.id !== p.id);
-    
-    // NEW: Check if necklace for Length feature
     const isNecklace = p.category === 'necklace';
 
+    // We use value="${state.draftMessage}" to ensure the text stays if re-rendered
     return `
     <section class="py-12 px-4 max-w-7xl mx-auto fade-in">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
@@ -326,10 +324,13 @@ function renderProductDetail() {
                     
                     <div>
                         <label class="block text-xs font-bold text-gray-900 uppercase tracking-widest mb-3">${t('custom_title')}</label>
-                        <input id="custom-text-input" type="text" maxlength="10" placeholder="e.g. LOVE" class="w-full p-4 bg-gray-50 border-b-2 border-gray-200 focus:border-black outline-none text-lg uppercase tracking-widest transition" oninput="document.getElementById('mp').innerText = window._app.toMorse(this.value)">
+                        <input id="custom-text-input" type="text" maxlength="10" placeholder="e.g. LOVE" 
+                            value="${state.draftMessage}"
+                            class="w-full p-4 bg-gray-50 border-b-2 border-gray-200 focus:border-black outline-none text-lg uppercase tracking-widest transition" 
+                            oninput="window._app.setDraftMessage(this.value)">
                         <div class="flex justify-between items-start mt-2">
                              <span class="text-xs text-gray-400">${t('custom_hint')}</span>
-                             <div id="mp" class="text-xl font-bold text-gray-900 tracking-[0.2em] h-6"></div>
+                             <div id="mp" class="text-xl font-bold text-gray-900 tracking-[0.2em] h-6">${toMorse(state.draftMessage)}</div>
                         </div>
                     </div>
 
@@ -339,12 +340,12 @@ function renderProductDetail() {
                             <label class="block text-xs font-bold text-gray-900 uppercase tracking-widest">${t('length_label')} (Inches)</label>
                             <button onclick="window._app.toggleSizeGuide()" class="text-xs text-gray-500 underline hover:text-black">${t('length_guide')}</button>
                         </div>
-                        <select id="length-select" class="w-full p-4 bg-gray-50 border border-gray-200 outline-none text-sm cursor-pointer appearance-none">
-                            <option value="18">18" (Standard)</option>
-                            <option value="20">20"</option>
-                            <option value="22">22"</option>
-                            <option value="24">24"</option>
-                            <option value="30">30"</option>
+                        <select id="length-select" onchange="window._app.setDraftLength(this.value)" class="w-full p-4 bg-gray-50 border border-gray-200 outline-none text-sm cursor-pointer appearance-none">
+                            <option value="18" ${state.draftLength === '18' ? 'selected' : ''}>18" (Standard)</option>
+                            <option value="20" ${state.draftLength === '20' ? 'selected' : ''}>20"</option>
+                            <option value="22" ${state.draftLength === '22' ? 'selected' : ''}>22"</option>
+                            <option value="24" ${state.draftLength === '24' ? 'selected' : ''}>24"</option>
+                            <option value="30" ${state.draftLength === '30' ? 'selected' : ''}>30"</option>
                         </select>
                         <div class="absolute right-4 top-[2.8rem] pointer-events-none">
                             <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -355,19 +356,14 @@ function renderProductDetail() {
                                 <span class="text-xs font-bold">SIZE REFERENCE</span>
                                 <button onclick="window._app.toggleSizeGuide()" class="text-xs">✕</button>
                              </div>
-                             <img src="./lenght.png" class="w-full h-auto" onerror="this.style.display='none'; this.insertAdjacentHTML('afterend', '<p class=text-red-500>Image ./lenght.png not found</p>')">
+                             <img src="./length.png" class="w-full h-auto"> 
                         </div>
                     </div>
                     ` : ''}
 
                 </div>
 
-                <button onclick="
-                    const txt = document.getElementById('custom-text-input').value; 
-                    const len = document.getElementById('length-select') ? document.getElementById('length-select').value + '&quot;' : 'Standard';
-                    if(!txt) { alert('${t('fill_fields')}'); return; }
-                    window._app.addToCart(${p.id}, txt, len);
-                " 
+                <button onclick="window._app.addToCart(${p.id})" 
                 class="w-full py-4 bg-gray-900 text-white text-sm font-bold uppercase tracking-widest hover:bg-black transition-colors duration-300 shadow-lg flex items-center justify-center gap-2">
                     ${t('add_cart')}
                 </button>
@@ -393,7 +389,7 @@ function renderProductDetail() {
 }
 
 function renderCart() {
-    const items = cartItems(); // Now uses state.cart with custom props
+    const items = cartItems();
     const sub = items.reduce((a,b)=>a+b.sub,0);
     const ship = sub >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
     const total = sub + ship;
@@ -564,13 +560,11 @@ function render() {
 
 // --- INIT ---
 window._app = { 
-    state, nav, toggleLang, handleSearch, viewProduct, addToCart, removeCartItem, clearCart, toMorse, submitOrder, submitContact, 
+    state, nav, toggleLang, handleSearch, viewProduct, addToCart, removeCartItem, clearCart, toMorse, submitOrder, submitContact, setDraftMessage, setDraftLength,
     togglePolicyModal: () => { state.showPolicyModal = !state.showPolicyModal; render(); }, 
     toggleSizeGuide: () => { state.showSizeGuide = !state.showSizeGuide; render(); },
     closeSuccessModal: () => { state.showSuccessModal = false; render(); } 
 };
 
-render();
+// Initial Render is triggered by Auth listener
 </script>
-</body>
-</html>
