@@ -1,3 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  
+  <title>Morse Jewelry | Christmas Sale</title>
+  <meta property="og:title" content="Morse Jewelry - Personalized Secret Messages" />
+  <meta property="og:description" content="Handcrafted jewelry encoding secret messages. Christmas Sale Live Now." />
+  <meta property="og:image" content="./morse_logo_transparent.png" />
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="./morse_logo_transparent.png" type="image/png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Oswald:wght@400;500;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Typography & Base */
+    :root { --primary: #1a1a1a; --accent: #db2777; --gold: #C5A059; }
+    body { font-family: 'Jost', sans-serif; letter-spacing: 0.02em; color: var(--primary); background-color: #FAFAFA; }
+    h1, h2, h3, h4, .font-heading { font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 0.05em; }
+    .font-arabic { font-family: 'Cairo', sans-serif; }
+    
+    /* Animations */
+    .fade-in { animation: fadeIn 0.6s ease-out forwards; opacity: 0; transform: translateY(10px); }
+    @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+    
+    /* Image Hover Zoom Effect */
+    .img-zoom-container { overflow: hidden; }
+    .img-zoom-container img { transition: transform 0.7s ease; }
+    .img-zoom-container:hover img { transform: scale(1.1); }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+<div id="root" class="flex-1 flex flex-col">
+    <div class="flex h-screen items-center justify-center bg-white z-50">
+        <div class="text-center">
+            <img src="./morse_logo_transparent.png" class="h-24 w-auto mx-auto animate-pulse opacity-80">
+            <p class="mt-4 text-xs tracking-[0.3em] text-gray-400 uppercase">Loading Christmas Sale</p>
+        </div>
+    </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
@@ -28,27 +78,32 @@ const MORSE_CODE = { 'a': '.-', 'b': '-...', 'c': '-.-.', 'd': '-..', 'e': '.', 
 // --- TRANSLATIONS ---
 const t_data = {
   en: { 
-    title: "Morse Jewelry", shop: "Collection", gallery: "Gallery", contact: "Concierge", search_placeholder: "Search...", shipping_banner: "Complimentary shipping on orders over 1000 EGP", cart_empty: "Your shopping bag is empty", shop_now: "Explore Collection", customize: "Personalize", add_cart: "Add to Bag", free: "Complimentary", total: "Total", original_price: "EGP", payment_section: "Payment Method", pay_cod: "Cash on Delivery", cod_desc: "Pay securely upon receipt.", checkout_title: "Secure Checkout", place_order: "Confirm Order", policy_title: "Policy", policy_link: "Policies", secure_checkout: "Secure Checkout", easy_returns: "Easy Returns", customer_support: "Concierge Support", full_name: "Full Name", phone_1: "Phone Number", phone_2: "Alt Phone", address_section: "Shipping Address", gov_label: "Governorate", district_label: "District", street_label: "Street", building_label: "Building", floor_label: "Floor", apt_label: "Apt", custom_title: "Your Secret Message", custom_hint: "Enter text to translate:", custom_limit: "(Max 10 chars)", contact_us: "Contact Us", send_msg: "Send Message", your_cart: "Your Bag", subtotal: "Subtotal", shipping: "Shipping", clear_cart: "Empty Bag", proceed: "Proceed to Checkout", back_shop: "Back to Collection", you_like: "You May Also Like", spotlight: "Client Spotlight", spotlight_sub: "Real stories in secret code", morse_title: "The Art of Secrecy", morse_desc_1: "Encode your message in timeless jewelry.", morse_desc_2: "Round beads for dots. Long beads for dashes.", morse_secret: "A hidden meaning, known only to you.", hero_title: "Wear Your Story", hero_sub: "Handcrafted jewelry with hidden meaning.", collection: "The Collection", order_success_title: "Thank You", order_success_msg: "We have received your order. Our team will contact you shortly.", close: "Close", phone_error: "Invalid phone number", fill_fields: "Please complete all fields", added_cart: "Added to bag", order_failed: "System Error",
-    length_label: "Chain Length", length_guide: "Size Guide", length_select: "Select Length"
+    title: "Morse Jewelry", shop: "Collection", gallery: "Gallery", contact: "Concierge", 
+    shipping_banner: "🎄 CHRISTMAS SALE ENDING SOON | FREE SHIPPING OVER 1000 EGP", 
+    cart_empty: "Your shopping bag is empty", shop_now: "Explore Collection", customize: "Personalize", add_cart: "Add to Bag", free: "Complimentary", total: "Total", original_price: "EGP", payment_section: "Payment Method", pay_cod: "Cash on Delivery", cod_desc: "Pay securely upon receipt.", checkout_title: "Secure Checkout", place_order: "Confirm Order", policy_title: "Policy", policy_link: "Policies", secure_checkout: "Secure Checkout", easy_returns: "Easy Returns", customer_support: "Concierge Support", full_name: "Full Name", phone_1: "Phone Number", phone_2: "Alt Phone", address_section: "Shipping Address", gov_label: "Governorate", district_label: "District", street_label: "Street", building_label: "Building", floor_label: "Floor", apt_label: "Apt", custom_title: "Your Secret Message", custom_hint: "Enter text to translate:", custom_limit: "(Max 10 chars)", contact_us: "Contact Us", send_msg: "Send Message", your_cart: "Your Bag", subtotal: "Subtotal", shipping: "Shipping", clear_cart: "Empty Bag", proceed: "Proceed to Checkout", back_shop: "Back to Collection", you_like: "You May Also Like", spotlight: "Client Spotlight", spotlight_sub: "Real stories in secret code", morse_title: "The Art of Secrecy", morse_desc_1: "Encode your message in timeless jewelry.", morse_desc_2: "Round beads for dots. Long beads for dashes.", morse_secret: "A hidden meaning, known only to you.", hero_title: "Wear Your Story", hero_sub: "Handcrafted jewelry with hidden meaning.", collection: "The Collection", order_success_title: "Thank You", order_success_msg: "We have received your order. Our team will contact you shortly.", close: "Close", phone_error: "Invalid phone number", fill_fields: "Please complete all fields", added_cart: "Added to bag", order_failed: "System Error",
+    length_label: "Chain Length", length_guide: "Size Guide", length_select: "Select Length", sale_tag: "XMAS SALE"
   },
   ar: { 
-    title: "مورس للمجوهرات", shop: "المجموعة", gallery: "المعرض", contact: "تواصل معنا", search_placeholder: "بحث...", shipping_banner: "شحن مجاني للطلبات فوق ١٠٠٠ ج.م", cart_empty: "سلة التسوق فارغة", shop_now: "تسوق الآن", customize: "تخصيص", add_cart: "أضف للسلة", free: "مجاني", total: "الإجمالي", original_price: "ج.م", payment_section: "طريقة الدفع", pay_cod: "دفع عند الاستلام", cod_desc: "الدفع بأمان عند الاستلام.", checkout_title: "إتمام الشراء", place_order: "تأكيد الطلب", policy_title: "السياسات", policy_link: "السياسات", secure_checkout: "دفع آمن", easy_returns: "سهولة الاسترجاع", customer_support: "دعم فني", full_name: "الاسم بالكامل", phone_1: "رقم الهاتف", phone_2: "رقم بديل", address_section: "عنوان الشحن", gov_label: "المحافظة", district_label: "المنطقة", street_label: "الشارع", building_label: "المبنى", floor_label: "الدور", apt_label: "الشقة", custom_title: "رسالتك السرية", custom_hint: "اكتب الاسم للترجمة:", custom_limit: "(أقصى ١٠ حروف)", contact_us: "اتصل بنا", send_msg: "إرسال", your_cart: "الحقيبة", subtotal: "المجموع", shipping: "الشحن", clear_cart: "إفراغ السلة", proceed: "متابعة الشراء", back_shop: "عودة للمتجر", you_like: "قد يعجبك أيضاً", spotlight: "صور العملاء", spotlight_sub: "قصص حقيقية بلغة سرية", morse_title: "فن السرية", morse_desc_1: "جسد رسالتك في مجوهرات خالدة.", morse_desc_2: "خرز دائري للنقاط. خرز طويل للشرطات.", morse_secret: "معنى خفي، لا يعرفه سواك.", hero_title: "ارتدي قصتك", hero_sub: "مجوهرات يدوية بمعنى خفي.", collection: "المجموعة", order_success_title: "شكراً لك", order_success_msg: "تم استلام طلبك بنجاح. سنتواصل معك قريباً.", close: "إغلاق", phone_error: "رقم الهاتف غير صحيح", fill_fields: "يرجى ملء جميع البيانات", added_cart: "تمت الإضافة", order_failed: "خطأ في النظام",
-    length_label: "طول السلسلة", length_guide: "دليل المقاسات", length_select: "اختر الطول"
+    title: "مورس للمجوهرات", shop: "المجموعة", gallery: "المعرض", contact: "تواصل معنا", 
+    shipping_banner: "🎄 خصومات الكريسماس تنتهي قريباً | شحن مجاني فوق ١٠٠٠ ج.م", 
+    cart_empty: "سلة التسوق فارغة", shop_now: "تسوق الآن", customize: "تخصيص", add_cart: "أضف للسلة", free: "مجاني", total: "الإجمالي", original_price: "ج.م", payment_section: "طريقة الدفع", pay_cod: "دفع عند الاستلام", cod_desc: "الدفع بأمان عند الاستلام.", checkout_title: "إتمام الشراء", place_order: "تأكيد الطلب", policy_title: "السياسات", policy_link: "السياسات", secure_checkout: "دفع آمن", easy_returns: "سهولة الاسترجاع", customer_support: "دعم فني", full_name: "الاسم بالكامل", phone_1: "رقم الهاتف", phone_2: "رقم بديل", address_section: "عنوان الشحن", gov_label: "المحافظة", district_label: "المنطقة", street_label: "الشارع", building_label: "المبنى", floor_label: "الدور", apt_label: "الشقة", custom_title: "رسالتك السرية", custom_hint: "اكتب الاسم للترجمة:", custom_limit: "(أقصى ١٠ حروف)", contact_us: "اتصل بنا", send_msg: "إرسال", your_cart: "الحقيبة", subtotal: "المجموع", shipping: "الشحن", clear_cart: "إفراغ السلة", proceed: "متابعة الشراء", back_shop: "عودة للمتجر", you_like: "قد يعجبك أيضاً", spotlight: "صور العملاء", spotlight_sub: "قصص حقيقية بلغة سرية", morse_title: "فن السرية", morse_desc_1: "جسد رسالتك في مجوهرات خالدة.", morse_desc_2: "خرز دائري للنقاط. خرز طويل للشرطات.", morse_secret: "معنى خفي، لا يعرفه سواك.", hero_title: "ارتدي قصتك", hero_sub: "مجوهرات يدوية بمعنى خفي.", collection: "المجموعة", order_success_title: "شكراً لك", order_success_msg: "تم استلام طلبك بنجاح. سنتواصل معك قريباً.", close: "إغلاق", phone_error: "رقم الهاتف غير صحيح", fill_fields: "يرجى ملء جميع البيانات", added_cart: "تمت الإضافة", order_failed: "خطأ في النظام",
+    length_label: "طول السلسلة", length_guide: "دليل المقاسات", length_select: "اختر الطول", sale_tag: "عرض خاص"
   }
 };
 
 // --- STATE ---
 let currentUserId = null;
 const state = {
-  lang: 'en', page: 'home', cart: [], selectedProductId: null, searchQuery: '', showSuccessModal: false, showPolicyModal: false, showSizeGuide: false,
-  // Added drafts to preserve input when toggling Size Guide
+  lang: 'en', page: 'home', cart: [], selectedProductId: null, showSuccessModal: false, showPolicyModal: false, showSizeGuide: false,
+  // Drafts to preserve input
   draftMessage: '', 
   draftLength: '18',
   products: [
-    { id: 1, name: 'Gold Morse Necklace', category: 'necklace', price: 750, originalPrice: 1100, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
-    { id: 2, name: 'Gold Morse Bracelet', category: 'bracelet', price: 550, originalPrice: 900, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
-    { id: 3, name: 'Silver Morse Necklace', category: 'necklace', price: 750, originalPrice: 1100, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
-    { id: 4, name: 'Silver Cord Bracelet', category: 'bracelet', price: 550, originalPrice: 900, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
+    // UPDATED PRICES: 750->450, 550->350
+    { id: 1, name: 'Gold Morse Necklace', category: 'necklace', price: 450, originalPrice: 750, description: 'Elegant gold bar necklace encoding a message in dots and dashes.', image: './goldennecklace.avif' },
+    { id: 2, name: 'Gold Morse Bracelet', category: 'bracelet', price: 350, originalPrice: 550, description: 'Delicate 14k gold bracelet with a Morse code message.', image: './goldenbracelet.avif' },
+    { id: 3, name: 'Silver Morse Necklace', category: 'necklace', price: 450, originalPrice: 750, description: 'Polished silver necklace with a hidden message pattern.', image: './silvernecklace.png' },
+    { id: 4, name: 'Silver Cord Bracelet', category: 'bracelet', price: 350, originalPrice: 550, description: 'Cord bracelet set with silver beads for customization.', image: './silverbracelet.webp' },
   ],
   message: '', messageType: 'success'
 };
@@ -66,7 +121,6 @@ function toggleLang() {
 function toMorse(text) { return text.toLowerCase().split('').map(char => MORSE_CODE[char] || char).join(' '); }
 function findProduct(id) { return state.products.find(p=>p.id===Number(id)); }
 
-// State setters to keep inputs alive during re-renders
 function setDraftMessage(val) {
     state.draftMessage = val;
     const mp = document.getElementById('mp');
@@ -75,7 +129,6 @@ function setDraftMessage(val) {
 function setDraftLength(val) { state.draftLength = val; }
 
 function addToCart(productId) { 
-    // We grab from state now, not DOM, ensuring reliability
     const customText = state.draftMessage;
     const length = state.draftLength ? state.draftLength + '"' : "Standard";
 
@@ -88,7 +141,6 @@ function addToCart(productId) {
         length: length
     });
     
-    // Reset drafts
     state.draftMessage = '';
     state.draftLength = '18';
 
@@ -111,52 +163,17 @@ function flashMessage(msg, type='success', ms=3000){ state.message = msg; state.
 
 function viewProduct(id) { 
     state.selectedProductId = Number(id); 
-    state.draftMessage = ''; // Reset when viewing new product
+    state.draftMessage = ''; 
     state.draftLength = '18';
     state.page = 'product_detail'; 
     render(); 
     window.scrollTo(0,0); 
 }
 
-// Improved Search: Manipulates DOM directly for performance (prevents focus loss)
-function handleSearch(evt) { 
-    state.searchQuery = evt.target.value.toLowerCase(); 
-    
-    if(state.page !== 'home') {
-        state.page = 'home';
-        render();
-        // Restore focus after render if we switched pages
-        const input = document.querySelector('input[type="text"]');
-        if(input) {
-            input.value = state.searchQuery;
-            input.focus();
-        }
-        return;
-    }
-
-    // Direct DOM manipulation for smooth filtering
-    const products = document.querySelectorAll('.product-card');
-    let hasResults = false;
-    products.forEach(card => {
-        const name = card.getAttribute('data-name').toLowerCase();
-        if(name.includes(state.searchQuery)) {
-            card.style.display = 'block';
-            hasResults = true;
-        } else {
-            card.style.display = 'none';
-        }
-    });
-    
-    // Toggle "No results" message
-    const emptyMsg = document.getElementById('empty-msg');
-    if(emptyMsg) emptyMsg.style.display = hasResults ? 'none' : 'block';
-}
-
 // --- AUTH ---
 onAuthStateChanged(auth, user => {
     if (user) { currentUserId = user.uid; } 
     else { signInAnonymously(auth).then(cred => { currentUserId = cred.user.uid; }); }
-    // Initial render moved here to ensure auth doesn't cause double render flicker
     render();
 });
 
@@ -210,7 +227,7 @@ function escapeHtml(str){ if(!str) return ''; return String(str).replace(/[&<>"'
 function renderNavbar() {
     const cartCount = state.cart.length;
     return `
-    <div class="bg-black text-white text-[10px] uppercase font-bold text-center py-2 tracking-[0.2em]">${t('shipping_banner')}</div>
+    <div class="bg-red-700 text-white text-[10px] uppercase font-bold text-center py-2 tracking-[0.2em] animate-pulse">${t('shipping_banner')}</div>
     <nav class="bg-white/95 backdrop-blur-md sticky top-0 z-30 border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-6 w-full md:w-auto">
@@ -225,11 +242,6 @@ function renderNavbar() {
                     <button onclick="window._app.nav('gallery')" class="hover:text-black transition">${t('gallery')}</button>
                 </div>
 
-                <div class="relative flex-1 md:flex-none">
-                    <input type="text" placeholder="${t('search_placeholder')}" value="${state.searchQuery}" oninput="window._app.handleSearch(event)" class="w-full md:w-32 focus:w-48 transition-all pl-2 pr-8 py-1 border-b border-gray-300 focus:border-black outline-none text-sm bg-transparent placeholder-gray-400">
-                    <svg class="w-4 h-4 absolute right-0 top-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                </div>
-                
                 <div class="flex items-center gap-4">
                     <button onclick="window._app.toggleLang()" class="text-xs font-bold text-gray-900 border border-gray-900 px-2 py-1 hover:bg-gray-900 hover:text-white transition">${state.lang==='en'?'AR':'EN'}</button>
                     <button onclick="window._app.nav('cart')" class="relative text-gray-900 hover:opacity-70 transition">
@@ -243,7 +255,6 @@ function renderNavbar() {
 }
 
 function renderHome() {
-    // Note: We render ALL products initially for the DOM filter to work
     return `
     <section class="fade-in">
         <div class="relative bg-gray-100 py-16 px-4 mb-16 text-center">
@@ -269,13 +280,12 @@ function renderHome() {
                 <h2 class="text-xl font-bold text-gray-900 tracking-widest">${t('collection')}</h2>
             </div>
             
-            <div id="empty-msg" class="text-center py-20 text-gray-400 font-light tracking-wide hidden">No treasures found</div>
-            
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 mb-24">
                 ${state.products.map(p => `
-                <article class="product-card group cursor-pointer" data-name="${p.name}" onclick="window._app.viewProduct(${p.id})">
+                <article class="product-card group cursor-pointer" onclick="window._app.viewProduct(${p.id})">
                     <div class="img-zoom-container bg-gray-50 aspect-[4/5] mb-4 relative overflow-hidden">
                         <img src="${escapeHtml(p.image)}" class="w-full h-full object-cover">
+                        <div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest z-10">${t('sale_tag')}</div>
                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-500"></div>
                         <button class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold uppercase tracking-widest py-3 px-6 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0 shadow-lg hover:bg-black hover:text-white w-[80%]">
                             ${t('customize')}
@@ -284,7 +294,7 @@ function renderHome() {
                     <div class="text-center">
                         <h3 class="text-sm font-medium text-gray-900 uppercase tracking-wide mb-1">${escapeHtml(p.name)}</h3>
                         <div class="space-x-2 text-sm">
-                            <span class="text-gray-400 line-through font-light">${p.originalPrice}</span>
+                            <span class="text-red-500 line-through font-light">${p.originalPrice}</span>
                             <span class="text-gray-900 font-bold">${p.price} ${t('original_price')}</span>
                         </div>
                     </div>
@@ -299,7 +309,6 @@ function renderProductDetail() {
     const others = state.products.filter(x => x.id !== p.id);
     const isNecklace = p.category === 'necklace';
 
-    // We use value="${state.draftMessage}" to ensure the text stays if re-rendered
     return `
     <section class="py-12 px-4 max-w-7xl mx-auto fade-in">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
@@ -311,13 +320,13 @@ function renderProductDetail() {
             </div>
 
             <div class="flex flex-col justify-center">
-                <span class="text-xs text-gray-400 uppercase tracking-[0.2em] mb-2">Signature Collection</span>
+                <span class="text-xs text-red-600 font-bold uppercase tracking-[0.2em] mb-2">${t('sale_tag')} - Limited Time</span>
                 <h1 class="text-4xl text-gray-900 mb-4 tracking-wide">${escapeHtml(p.name)}</h1>
                 <p class="text-gray-500 font-light leading-relaxed mb-8 text-lg">${escapeHtml(p.description)}</p>
                 
                 <div class="flex items-center gap-4 mb-8">
                      <span class="text-3xl font-heading text-gray-900">${p.price} <span class="text-sm align-top">${t('original_price')}</span></span>
-                     <span class="text-lg text-gray-400 line-through font-light">${p.originalPrice}</span>
+                     <span class="text-lg text-red-500 line-through font-light">${p.originalPrice}</span>
                 </div>
 
                 <div class="space-y-6 border-t border-b border-gray-100 py-8 mb-8">
@@ -380,7 +389,7 @@ function renderProductDetail() {
                     </div>
                     <div class="text-center">
                          <h4 class="text-xs font-bold uppercase tracking-wide truncate">${escapeHtml(o.name)}</h4>
-                         <span class="text-xs text-gray-500">${o.price} ${t('original_price')}</span>
+                         <span class="text-xs text-red-500">${o.price} ${t('original_price')}</span>
                     </div>
                 </div>`).join('')}
             </div>
@@ -560,11 +569,12 @@ function render() {
 
 // --- INIT ---
 window._app = { 
-    state, nav, toggleLang, handleSearch, viewProduct, addToCart, removeCartItem, clearCart, toMorse, submitOrder, submitContact, setDraftMessage, setDraftLength,
+    state, nav, toggleLang, viewProduct, addToCart, removeCartItem, clearCart, toMorse, submitOrder, submitContact, setDraftMessage, setDraftLength,
     togglePolicyModal: () => { state.showPolicyModal = !state.showPolicyModal; render(); }, 
     toggleSizeGuide: () => { state.showSizeGuide = !state.showSizeGuide; render(); },
     closeSuccessModal: () => { state.showSuccessModal = false; render(); } 
 };
 
-// Initial Render is triggered by Auth listener
 </script>
+</body>
+</html>
